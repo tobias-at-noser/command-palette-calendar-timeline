@@ -65,6 +65,29 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
+    public void AppxManifestReferencesExistingVisualAssetFiles()
+    {
+        XNamespace uap = "http://schemas.microsoft.com/appx/manifest/uap/windows10";
+        var document = XDocument.Load(ProjectFile("AppxManifest.xml"));
+        var visualElements = document.Descendants(uap + "VisualElements").Single();
+        var defaultTile = visualElements.Element(uap + "DefaultTile")!;
+        var splashScreen = visualElements.Element(uap + "SplashScreen")!;
+        var assetPaths = new[]
+        {
+            visualElements.Attribute("Square150x150Logo")?.Value,
+            visualElements.Attribute("Square44x44Logo")?.Value,
+            defaultTile.Attribute("Wide310x150Logo")?.Value,
+            splashScreen.Attribute("Image")?.Value,
+        };
+
+        foreach (var assetPath in assetPaths)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(assetPath));
+            Assert.True(File.Exists(ProjectFile(assetPath!)), assetPath);
+        }
+    }
+
+    [Fact]
     public void AppxManifestUsesValidResourceLanguageForLooseRegistration()
     {
         XNamespace manifest = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
@@ -142,6 +165,7 @@ public sealed class CommandPalettePackageMetadataTests
 
     private static string ProjectFile(string fileName)
     {
+        var normalizedFileName = fileName.Replace('\\', Path.DirectorySeparatorChar);
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
 
         while (directory is not null)
@@ -150,7 +174,7 @@ public sealed class CommandPalettePackageMetadataTests
                 directory.FullName,
                 "src",
                 "CalendarTimeline.CommandPalette",
-                fileName);
+                normalizedFileName);
 
             if (File.Exists(candidate))
             {
