@@ -65,6 +65,17 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
+    public void AppxManifestUsesValidResourceLanguageForLooseRegistration()
+    {
+        XNamespace manifest = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
+        var document = XDocument.Load(ProjectFile("AppxManifest.xml"));
+        var language = document.Descendants(manifest + "Resource").Single().Attribute("Language")?.Value;
+
+        Assert.Equal("en-US", language);
+        Assert.NotEqual("x-generate", language);
+    }
+
+    [Fact]
     public void ReadmeDocumentsRegisteringPublishedAppxManifest()
     {
         var readme = File.ReadAllText(ProjectFile(Path.Combine("..", "..", "..", "README.md")));
