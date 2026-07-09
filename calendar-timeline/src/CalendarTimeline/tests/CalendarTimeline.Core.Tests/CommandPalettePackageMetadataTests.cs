@@ -6,6 +6,23 @@ namespace CalendarTimeline.Core.Tests;
 public sealed class CommandPalettePackageMetadataTests
 {
     [Fact]
+    public void TestProjectUsesXunitV3Packages()
+    {
+        var project = XDocument.Load(TestProjectFile("CalendarTimeline.Core.Tests.csproj"));
+        var packageVersions = project.Descendants("PackageReference")
+            .ToDictionary(
+                element => element.Attribute("Include")!.Value,
+                element => element.Attribute("Version")!.Value);
+
+        Assert.Equal("3.0.1", packageVersions["xunit.v3"]);
+        Assert.Equal("3.0.2", packageVersions["xunit.runner.visualstudio"]);
+        Assert.False(packageVersions.ContainsKey("xunit"));
+        var linuxRuntimeIdentifier = project.Descendants("RuntimeIdentifier")
+            .Single(element => element.Attribute("Condition")?.Value.Contains("IsOSPlatform('Linux')") == true);
+        Assert.Equal("linux-musl-x64", linuxRuntimeIdentifier.Value);
+    }
+
+    [Fact]
     public void CommandPaletteProjectIsConfiguredForMsixSideloading()
     {
         var project = XDocument.Load(ProjectFile("CalendarTimeline.CommandPalette.csproj"));
@@ -165,6 +182,16 @@ public sealed class CommandPalettePackageMetadataTests
 
     private static string ProjectFile(string fileName)
     {
+        return SolutionFile("src", "CalendarTimeline.CommandPalette", fileName);
+    }
+
+    private static string TestProjectFile(string fileName)
+    {
+        return SolutionFile("tests", "CalendarTimeline.Core.Tests", fileName);
+    }
+
+    private static string SolutionFile(string parentDirectoryName, string projectDirectoryName, string fileName)
+    {
         var normalizedFileName = fileName.Replace('\\', Path.DirectorySeparatorChar);
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
 
@@ -172,8 +199,8 @@ public sealed class CommandPalettePackageMetadataTests
         {
             var candidate = Path.Combine(
                 directory.FullName,
-                "src",
-                "CalendarTimeline.CommandPalette",
+                parentDirectoryName,
+                projectDirectoryName,
                 normalizedFileName);
 
             if (File.Exists(candidate))
