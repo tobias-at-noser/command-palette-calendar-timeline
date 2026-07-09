@@ -12,4 +12,18 @@ public sealed class CalendarTimelineCommandsProvider
     {
         dockBand.Update(snapshot);
     }
+
+    public bool TryApplyWorkerSnapshot(string json)
+    {
+        try
+        {
+            dockBand.Update(CalendarSnapshotJson.Deserialize(json));
+            return true;
+        }
+        catch
+        {
+            dockBand.ApplyWorkerError("Outlook-Kalender nicht verfügbar");
+            return false;
+        }
+    }
 }

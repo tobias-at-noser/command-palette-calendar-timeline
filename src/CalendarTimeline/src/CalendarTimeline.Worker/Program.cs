@@ -1,15 +1,10 @@
-using System.Text.Json;
+using CalendarTimeline.Core;
 using CalendarTimeline.Worker;
-
-var options = new JsonSerializerOptions
-{
-    WriteIndented = true
-};
 
 if (args.Contains("--fake-once", StringComparer.OrdinalIgnoreCase))
 {
     var snapshot = FakeSnapshotFactory.Create(DateTimeOffset.Now);
-    Console.WriteLine(JsonSerializer.Serialize(snapshot, options));
+    Console.WriteLine(CalendarSnapshotJson.Serialize(snapshot));
     return 0;
 }
 
