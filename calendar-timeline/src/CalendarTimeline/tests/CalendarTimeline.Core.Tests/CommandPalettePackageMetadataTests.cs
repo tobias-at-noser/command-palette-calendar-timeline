@@ -45,6 +45,24 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
+    public void WindowsDockBandOverridesSdkSubtitle()
+    {
+        var source = File.ReadAllText(ProjectFile("CalendarTimelineDockBand.cs"));
+
+        Assert.Contains("public override string Subtitle", source);
+        Assert.Contains("private string subtitle", source);
+    }
+
+    [Fact]
+    public void ProgramUsesCsWinRtRegisterClassOverload()
+    {
+        var source = File.ReadAllText(ProjectFile("Program.cs"));
+
+        Assert.Contains("using Shmuelie.WinRTServer.CsWinRT;", source);
+        Assert.Contains("server.RegisterClass<CalendarTimelineExtension, IExtension>(() => extension);", source);
+    }
+
+    [Fact]
     public void PackageManifestRegistersCalendarTimelineCommandPaletteExtension()
     {
         XNamespace manifest = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";

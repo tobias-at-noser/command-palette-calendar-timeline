@@ -27,7 +27,17 @@ public sealed partial class CalendarTimelineDockBand
 
     public string StatusMessage { get; private set; } = string.Empty;
 
-    public string Subtitle { get; private set; }
+    private string subtitle = string.Empty;
+
+#if WINDOWS
+    public override string Subtitle
+#else
+    public string Subtitle
+#endif
+    {
+        get => subtitle;
+        set => subtitle = value;
+    }
 
     public void Update(CalendarSnapshot nextSnapshot)
     {
