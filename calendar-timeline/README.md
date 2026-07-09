@@ -22,7 +22,7 @@ Requires .NET 10 SDK in the current development environment.
 
 ## Sideload packaging
 
-The Command Palette project now contains `Package.appxmanifest`, COM/AppExtension registration metadata, and placeholder MSIX assets. On Windows, create a sideloadable package with:
+The Command Palette project now contains `AppxManifest.xml`, COM/AppExtension registration metadata, and placeholder MSIX assets. On Windows, create a sideloadable package with:
 
 ```powershell
 dotnet publish calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.CommandPalette -f net10.0-windows10.0.26100.0 -c Release -p:Platform=x64

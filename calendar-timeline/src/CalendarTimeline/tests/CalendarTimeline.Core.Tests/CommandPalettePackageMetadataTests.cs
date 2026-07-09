@@ -51,16 +51,17 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
-    public void PublishCopiesLooseManifestWithAppxManifestFileName()
+    public void SideloadManifestUsesRequiredAppxManifestFileNameWithoutPublishCopyTarget()
     {
         var project = XDocument.Load(ProjectFile("CalendarTimeline.CommandPalette.csproj"));
-        var target = project.Descendants("Target")
-            .Single(element => element.Attribute("Name")?.Value == "CopyLooseAppxManifestForSideloadRegistration");
-        var copy = target.Elements("Copy").Single();
 
-        Assert.Equal("AfterPublish", target.Attribute("AfterTargets")?.Value);
-        Assert.Equal("Package.appxmanifest", copy.Attribute("SourceFiles")?.Value);
-        Assert.Equal("$(PublishDir)AppxManifest.xml", copy.Attribute("DestinationFiles")?.Value);
+        var manifestPath = ProjectFile("AppxManifest.xml");
+
+        Assert.True(File.Exists(manifestPath));
+        Assert.False(File.Exists(Path.Combine(Path.GetDirectoryName(manifestPath)!, "Package.appxmanifest")));
+        Assert.DoesNotContain(
+            project.Descendants("Target"),
+            element => element.Attribute("Name")?.Value == "CopyLooseAppxManifestForSideloadRegistration");
     }
 
     [Fact]
@@ -108,7 +109,7 @@ public sealed class CommandPalettePackageMetadataTests
         XNamespace manifest = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
         XNamespace uap3 = "http://schemas.microsoft.com/appx/manifest/uap/windows10/3";
         XNamespace com = "http://schemas.microsoft.com/appx/manifest/com/windows10";
-        var document = XDocument.Load(ProjectFile("Package.appxmanifest"));
+        var document = XDocument.Load(ProjectFile("AppxManifest.xml"));
 
         var identity = document.Root!.Element(manifest + "Identity")!;
         Assert.Equal("CalendarTimeline.CommandPalette", identity.Attribute("Name")?.Value);
