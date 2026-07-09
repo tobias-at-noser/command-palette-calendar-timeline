@@ -14,5 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
     <ProjectReference Include="..\..\src\CalendarTimeline.CommandPalette\CalendarTimeline.CommandPalette.csproj" />
+    <ProjectReference Include="..\..\src\CalendarTimeline.Worker\CalendarTimeline.Worker.csproj" />
   </ItemGroup>
 </Project>
