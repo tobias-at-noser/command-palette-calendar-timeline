@@ -46,6 +46,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">
+    <WindowsMetadataReference Update="$(NuGetPackageRoot)microsoft.commandpalette.extensions\0.11.260520004\winmd\Microsoft.CommandPalette.Extensions.winmd" Implementation="Microsoft.CommandPalette.Extensions.dll" />
+  </ItemGroup>
   <ItemGroup Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">
     <Compile Remove="Program.cs" />
     <Compile Remove="CalendarTimelineExtension.cs" />

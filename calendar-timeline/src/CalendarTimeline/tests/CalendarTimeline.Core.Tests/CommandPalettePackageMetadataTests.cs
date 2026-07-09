@@ -51,6 +51,18 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
+    public void CommandPaletteWinmdReferenceDeclaresNativeImplementation()
+    {
+        var project = XDocument.Load(ProjectFile("CalendarTimeline.CommandPalette.csproj"));
+        var winmdReference = project.Descendants("WindowsMetadataReference")
+            .Single(element =>
+                element.Attribute("Include")?.Value.Contains("Microsoft.CommandPalette.Extensions.winmd") == true
+                || element.Attribute("Update")?.Value.Contains("Microsoft.CommandPalette.Extensions.winmd") == true);
+
+        Assert.Equal("Microsoft.CommandPalette.Extensions.dll", winmdReference.Attribute("Implementation")?.Value);
+    }
+
+    [Fact]
     public void WindowsDockBandOverridesSdkSubtitle()
     {
         var source = File.ReadAllText(ProjectFile("CalendarTimelineDockBand.cs"));
