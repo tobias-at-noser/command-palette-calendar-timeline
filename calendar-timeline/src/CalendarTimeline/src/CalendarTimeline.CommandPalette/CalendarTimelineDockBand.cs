@@ -1,10 +1,25 @@
 using CalendarTimeline.Core;
+#if WINDOWS
+using Microsoft.CommandPalette.Extensions.Toolkit;
+#endif
 
 namespace CalendarTimeline.CommandPalette;
 
-public sealed class CalendarTimelineDockBand
+public sealed partial class CalendarTimelineDockBand
+#if WINDOWS
+    : ListItem
+#endif
 {
     private CalendarSnapshot? snapshot;
+
+    public CalendarTimelineDockBand()
+    {
+#if WINDOWS
+        Icon = new IconInfo("\uE787");
+        Title = "Calendar Timeline";
+#endif
+        Subtitle = "Warte auf Outlook-Kalenderdaten";
+    }
 
     public CalendarSnapshot? Snapshot => snapshot;
 
@@ -12,15 +27,34 @@ public sealed class CalendarTimelineDockBand
 
     public string StatusMessage { get; private set; } = string.Empty;
 
+    public string Subtitle { get; private set; }
+
     public void Update(CalendarSnapshot nextSnapshot)
     {
         snapshot = nextSnapshot;
         Blocks = TimelineLayout.Arrange(nextSnapshot.Appointments);
         StatusMessage = nextSnapshot.StatusMessage ?? string.Empty;
+        Subtitle = BuildSubtitle();
     }
 
     public void ApplyWorkerError(string statusMessage)
     {
         StatusMessage = statusMessage;
+        Subtitle = statusMessage;
+    }
+
+    private string BuildSubtitle()
+    {
+        if (!string.IsNullOrWhiteSpace(StatusMessage))
+        {
+            return StatusMessage;
+        }
+
+        if (snapshot is null || snapshot.Appointments.Count == 0)
+        {
+            return "Keine Termine im Zeitfenster";
+        }
+
+        return $"{snapshot.Appointments.Count} Termine · aktualisiert {snapshot.GeneratedAt:HH:mm}";
     }
 }

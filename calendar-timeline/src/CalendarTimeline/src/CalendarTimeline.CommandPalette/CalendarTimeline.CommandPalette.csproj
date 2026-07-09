@@ -1,11 +1,73 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <OutputType Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">WinExe</OutputType>
+    <OutputType Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">Library</OutputType>
+    <RootNamespace>CalendarTimeline.CommandPalette</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <WindowsSdkPackageVersion>10.0.26100.68-preview</WindowsSdkPackageVersion>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net10.0;net10.0-windows10.0.26100.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFrameworks>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseAppHost>false</UseAppHost>
+    <RuntimeIdentifiers Condition="'$(OS)' == 'Windows_NT'">win-x64;win-arm64</RuntimeIdentifiers>
+    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <EnableMsixTooling>true</EnableMsixTooling>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Assets\SplashScreen.scale-200.png" />
+    <Content Include="Assets\LockScreenLogo.scale-200.png" />
+    <Content Include="Assets\Square150x150Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="Assets\StoreLogo.png" />
+    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">
+    <PackageReference Include="Microsoft.CommandPalette.Extensions" Version="0.11.260520004" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <PackageReference Include="Shmuelie.WinRTServer" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.20250829.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">
+    <Compile Remove="Program.cs" />
+    <Compile Remove="CalendarTimelineExtension.cs" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
+    <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
+    <WarningsNotAsErrors>IL2081;$(WarningsNotAsErrors)</WarningsNotAsErrors>
+    <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'!='Debug'">
+    <PublishTrimmed>true</PublishTrimmed>
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+  </PropertyGroup>
 </Project>

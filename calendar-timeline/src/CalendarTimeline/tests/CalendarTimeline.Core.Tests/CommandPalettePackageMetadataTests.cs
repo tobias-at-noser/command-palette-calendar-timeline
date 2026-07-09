@@ -1,0 +1,86 @@
+using System.Xml.Linq;
+using Xunit;
+
+namespace CalendarTimeline.Core.Tests;
+
+public sealed class CommandPalettePackageMetadataTests
+{
+    [Fact]
+    public void CommandPaletteProjectIsConfiguredForMsixSideloading()
+    {
+        var project = XDocument.Load(ProjectFile("CalendarTimeline.CommandPalette.csproj"));
+        var properties = project.Root!.Element("PropertyGroup")!;
+
+        var windowsOutputType = project.Descendants("OutputType")
+            .Single(element => element.Attribute("Condition")?.Value == "$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))")
+            .Value;
+        Assert.Equal("WinExe", windowsOutputType);
+        Assert.Equal("app.manifest", properties.Element("ApplicationManifest")?.Value);
+        var targetFrameworkValues = project.Descendants("TargetFrameworks")
+            .Select(element => element.Value)
+            .ToArray();
+        Assert.Contains("net10.0;net10.0-windows10.0.26100.0", targetFrameworkValues);
+        Assert.Equal("10.0.19041.0", properties.Element("TargetPlatformMinVersion")?.Value);
+        Assert.Equal("true", properties.Element("EnableWindowsTargeting")?.Value);
+        Assert.Equal("true", properties.Element("EnableMsixTooling")?.Value);
+        Assert.Equal("win-x64;win-arm64", properties.Element("RuntimeIdentifiers")?.Value);
+
+        var packageReferences = project.Descendants("PackageReference")
+            .Select(element => element.Attribute("Include")?.Value)
+            .ToHashSet();
+
+        Assert.Contains("Microsoft.CommandPalette.Extensions", packageReferences);
+        Assert.Contains("Microsoft.Windows.CsWinRT", packageReferences);
+        Assert.Contains("Shmuelie.WinRTServer", packageReferences);
+        Assert.Contains("Microsoft.Windows.SDK.BuildTools.MSIX", packageReferences);
+    }
+
+    [Fact]
+    public void PackageManifestRegistersCalendarTimelineCommandPaletteExtension()
+    {
+        XNamespace manifest = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
+        XNamespace uap3 = "http://schemas.microsoft.com/appx/manifest/uap/windows10/3";
+        XNamespace com = "http://schemas.microsoft.com/appx/manifest/com/windows10";
+        var document = XDocument.Load(ProjectFile("Package.appxmanifest"));
+
+        var identity = document.Root!.Element(manifest + "Identity")!;
+        Assert.Equal("CalendarTimeline.CommandPalette", identity.Attribute("Name")?.Value);
+        Assert.Equal("0.1.0.0", identity.Attribute("Version")?.Value);
+
+        var appExtension = document.Descendants(uap3 + "AppExtension").Single();
+        Assert.Equal("com.microsoft.commandpalette", appExtension.Attribute("Name")?.Value);
+        Assert.Equal("CalendarTimeline", appExtension.Attribute("Id")?.Value);
+        Assert.Equal("Calendar Timeline", appExtension.Attribute("DisplayName")?.Value);
+
+        var createInstance = appExtension.Descendants(manifest + "CreateInstance").Single();
+        var classId = createInstance.Attribute("ClassId")?.Value;
+        Assert.False(string.IsNullOrWhiteSpace(classId));
+        Assert.NotEqual("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF", classId);
+
+        var comClass = document.Descendants(com + "Class").Single();
+        Assert.Equal(classId, comClass.Attribute("Id")?.Value);
+    }
+
+    private static string ProjectFile(string fileName)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "src",
+                "CalendarTimeline.CommandPalette",
+                fileName);
+
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"Could not locate {fileName}.");
+    }
+}
