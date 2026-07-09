@@ -74,4 +74,7 @@
     <PublishTrimmed>false</PublishTrimmed>
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
+  <Target Name="CopyLooseAppxManifestForSideloadRegistration" AfterTargets="AfterPublish">
+    <Copy SourceFiles="Package.appxmanifest" DestinationFiles="$(PublishDir)AppxManifest.xml" />
+  </Target>
 </Project>

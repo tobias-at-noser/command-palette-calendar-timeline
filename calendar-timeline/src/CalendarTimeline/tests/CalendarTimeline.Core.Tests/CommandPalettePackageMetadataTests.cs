@@ -51,6 +51,28 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
+    public void PublishCopiesLooseManifestWithAppxManifestFileName()
+    {
+        var project = XDocument.Load(ProjectFile("CalendarTimeline.CommandPalette.csproj"));
+        var target = project.Descendants("Target")
+            .Single(element => element.Attribute("Name")?.Value == "CopyLooseAppxManifestForSideloadRegistration");
+        var copy = target.Elements("Copy").Single();
+
+        Assert.Equal("AfterPublish", target.Attribute("AfterTargets")?.Value);
+        Assert.Equal("Package.appxmanifest", copy.Attribute("SourceFiles")?.Value);
+        Assert.Equal("$(PublishDir)AppxManifest.xml", copy.Attribute("DestinationFiles")?.Value);
+    }
+
+    [Fact]
+    public void ReadmeDocumentsRegisteringPublishedAppxManifest()
+    {
+        var readme = File.ReadAllText(ProjectFile(Path.Combine("..", "..", "..", "README.md")));
+
+        Assert.Contains("Add-AppxPackage -Register .\\AppxManifest.xml", readme);
+        Assert.DoesNotContain("Add-AppxPackage -Register .\\Package.appxmanifest", readme);
+    }
+
+    [Fact]
     public void CommandPaletteWinmdReferenceDeclaresNativeImplementation()
     {
         var project = XDocument.Load(ProjectFile("CalendarTimeline.CommandPalette.csproj"));

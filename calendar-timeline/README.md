@@ -28,4 +28,10 @@ The Command Palette project now contains `Package.appxmanifest`, COM/AppExtensio
 dotnet publish calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.CommandPalette -f net10.0-windows10.0.26100.0 -c Release -p:Platform=x64
 ```
 
+From the publish output directory, register the loose package manifest with:
+
+```powershell
+Add-AppxPackage -Register .\AppxManifest.xml
+```
+
 The current package starts as a Command Palette extension and exposes a dock band shell backed by the tested snapshot/status model. Real Outlook COM data loading is still pending.
