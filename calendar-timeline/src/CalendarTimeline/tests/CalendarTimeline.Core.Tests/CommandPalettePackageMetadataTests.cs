@@ -24,6 +24,12 @@ public sealed class CommandPalettePackageMetadataTests
         Assert.Equal("true", properties.Element("EnableWindowsTargeting")?.Value);
         Assert.Equal("true", properties.Element("EnableMsixTooling")?.Value);
         Assert.Equal("win-x64;win-arm64", properties.Element("RuntimeIdentifiers")?.Value);
+        Assert.True(File.Exists(ProjectFile(Path.Combine("Properties", "PublishProfiles", "win-x64.pubxml"))));
+        Assert.True(File.Exists(ProjectFile(Path.Combine("Properties", "PublishProfiles", "win-arm64.pubxml"))));
+
+        var releaseProperties = project.Descendants("PropertyGroup")
+            .Single(element => element.Attribute("Condition")?.Value == "'$(Configuration)'!='Debug'");
+        Assert.Equal("false", releaseProperties.Element("PublishTrimmed")?.Value);
 
         var windowsUseAppHost = project.Descendants("UseAppHost")
             .Single(element => element.Attribute("Condition")?.Value == "$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))")
