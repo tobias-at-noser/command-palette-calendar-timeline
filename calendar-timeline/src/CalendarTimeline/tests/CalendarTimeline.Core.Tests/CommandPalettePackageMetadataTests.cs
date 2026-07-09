@@ -25,6 +25,15 @@ public sealed class CommandPalettePackageMetadataTests
         Assert.Equal("true", properties.Element("EnableMsixTooling")?.Value);
         Assert.Equal("win-x64;win-arm64", properties.Element("RuntimeIdentifiers")?.Value);
 
+        var windowsUseAppHost = project.Descendants("UseAppHost")
+            .Single(element => element.Attribute("Condition")?.Value == "$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))")
+            .Value;
+        var nonWindowsUseAppHost = project.Descendants("UseAppHost")
+            .Single(element => element.Attribute("Condition")?.Value == "!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))")
+            .Value;
+        Assert.Equal("true", windowsUseAppHost);
+        Assert.Equal("false", nonWindowsUseAppHost);
+
         var packageReferences = project.Descendants("PackageReference")
             .Select(element => element.Attribute("Include")?.Value)
             .ToHashSet();
