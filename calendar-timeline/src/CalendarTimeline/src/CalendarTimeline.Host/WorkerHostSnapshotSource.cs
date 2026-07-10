@@ -97,7 +97,7 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
     private static string ResolveWorkerExecutablePath(string hostBaseDirectory)
     {
         var directPath = FindWorkerArtifactPath(hostBaseDirectory);
-        if (File.Exists(directPath))
+        if (directPath is not null)
         {
             return directPath;
         }
@@ -124,27 +124,27 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
                 "bin",
                 relativeOutputDirectory);
             var workerPath = FindWorkerArtifactPath(workerOutputDirectory);
-            if (File.Exists(workerPath))
+            if (workerPath is not null)
             {
                 return workerPath;
             }
         }
 
-        return directPath;
+        return Path.Combine(hostBaseDirectory, GetWorkerArtifactNames()[0]);
     }
 
-    private static string FindWorkerArtifactPath(string directory)
+    private static string? FindWorkerArtifactPath(string directory)
     {
-        foreach (var fileName in GetWorkerArtifactNames())
+        var workerDllPath = Path.Combine(directory, "CalendarTimeline.Worker.dll");
+        if (!File.Exists(workerDllPath)
+            || !File.Exists(Path.Combine(directory, "CalendarTimeline.Worker.deps.json"))
+            || !File.Exists(Path.Combine(directory, "CalendarTimeline.Worker.runtimeconfig.json")))
         {
-            var path = Path.Combine(directory, fileName);
-            if (File.Exists(path))
-            {
-                return path;
-            }
+            return null;
         }
 
-        return Path.Combine(directory, GetWorkerArtifactNames()[0]);
+        var appHostPath = Path.Combine(directory, GetWorkerArtifactNames()[0]);
+        return File.Exists(appHostPath) ? appHostPath : workerDllPath;
     }
 
     private static string[] GetWorkerArtifactNames()

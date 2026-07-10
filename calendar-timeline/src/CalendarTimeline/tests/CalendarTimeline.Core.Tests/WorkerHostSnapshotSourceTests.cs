@@ -97,6 +97,8 @@ public sealed class WorkerHostSnapshotSourceTests
             Directory.CreateDirectory(hostOutputDirectory);
             Directory.CreateDirectory(Path.GetDirectoryName(workerPath)!);
             File.WriteAllText(workerPath, string.Empty);
+            File.WriteAllText(Path.ChangeExtension(workerPath, ".deps.json"), string.Empty);
+            File.WriteAllText(Path.ChangeExtension(workerPath, ".runtimeconfig.json"), string.Empty);
 
             Assert.Equal(workerPath, ResolveWorkerExecutablePath(hostOutputDirectory));
         }
@@ -121,6 +123,8 @@ public sealed class WorkerHostSnapshotSourceTests
         {
             Directory.CreateDirectory(outputDirectory);
             File.WriteAllText(workerPath, string.Empty);
+            File.WriteAllText(Path.ChangeExtension(workerPath, ".deps.json"), string.Empty);
+            File.WriteAllText(Path.ChangeExtension(workerPath, ".runtimeconfig.json"), string.Empty);
 
             Assert.Equal(workerPath, ResolveWorkerExecutablePath(outputDirectory));
         }
@@ -153,6 +157,44 @@ public sealed class WorkerHostSnapshotSourceTests
 
             Assert.True(process.ExitCode == 0, error);
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("win-x64")]
+    [InlineData("win-arm64")]
+    public async Task HostPublishIncludesRunnableWorkerArtifacts(string runtimeIdentifier)
+    {
+        var hostProjectPath = ResolveProjectPath("CalendarTimeline.Host");
+        var outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"publish \"{hostProjectPath}\" -f net10.0-windows10.0.19041.0 -r {runtimeIdentifier} -p:HostWindowsPublish=true -o \"{outputDirectory}\"",
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            });
+            Assert.NotNull(process);
+
+            await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+
+            Assert.True(process.ExitCode == 0, error);
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.exe")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.deps.json")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.runtimeconfig.json")));
         }
         finally
         {

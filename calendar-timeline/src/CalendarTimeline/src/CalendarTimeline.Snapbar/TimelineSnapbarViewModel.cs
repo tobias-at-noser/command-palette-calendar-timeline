@@ -95,6 +95,10 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
 
             StatusText = snapshot.StatusMessage ?? string.Empty;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
             Blocks.Clear();

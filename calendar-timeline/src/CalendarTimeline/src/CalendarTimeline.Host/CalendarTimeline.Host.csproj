@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' Or '$(HostWindowsPublish)' == 'true'">net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT' And '$(HostWindowsPublish)' != 'true'">net10.0</TargetFrameworks>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -10,7 +10,9 @@
     <UseAppHost Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseAppHost>
     <UseAppHost Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">false</UseAppHost>
     <UseWindowsForms Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseWindowsForms>
+    <WorkerProjectPath>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\CalendarTimeline.Worker.csproj</WorkerProjectPath>
     <WorkerOutputDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\bin\$(Configuration)\$(TargetFramework)\</WorkerOutputDirectory>
+    <WorkerPublishDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\obj\WorkerPublish\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\</WorkerPublishDirectory>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
@@ -23,6 +25,20 @@
     </ItemGroup>
     <Copy SourceFiles="@(WorkerArtifact)"
           DestinationFiles="@(WorkerArtifact->'$(TargetDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishWorkerWithHost" AfterTargets="Publish" Condition="'$(TargetPlatformIdentifier)' == 'Windows' and '$(RuntimeIdentifier)' != ''">
+    <MSBuild Projects="$(WorkerProjectPath)"
+             Targets="Restore;Publish"
+             Properties="Configuration=$(Configuration);TargetFramework=net10.0;RuntimeIdentifier=$(RuntimeIdentifier);PublishDir=$(WorkerPublishDirectory);UseAppHost=true" />
+    <ItemGroup>
+      <WorkerPublishArtifact Include="$(WorkerPublishDirectory)CalendarTimeline.Worker.exe" />
+      <WorkerPublishArtifact Include="$(WorkerPublishDirectory)CalendarTimeline.Worker.dll" />
+      <WorkerPublishArtifact Include="$(WorkerPublishDirectory)CalendarTimeline.Worker.deps.json" />
+      <WorkerPublishArtifact Include="$(WorkerPublishDirectory)CalendarTimeline.Worker.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WorkerPublishArtifact)"
+          DestinationFolder="$(PublishDir)"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>

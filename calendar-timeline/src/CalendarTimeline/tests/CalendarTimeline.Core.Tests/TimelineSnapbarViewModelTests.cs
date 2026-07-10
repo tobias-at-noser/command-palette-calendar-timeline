@@ -41,6 +41,27 @@ public sealed class TimelineSnapbarViewModelTests
     }
 
     [Fact]
+    public async Task RefreshAsync_PreservesExistingStateAndRethrowsWhenCallerCancels()
+    {
+        var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
+        var initialSnapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [new Appointment("1", "Planning", "Room 42", now, now.AddMinutes(30), false, false, null)],
+            "Aktualisiert");
+        var viewModel = new TimelineSnapbarViewModel(new CancellingAfterInitialSnapshotClient(initialSnapshot));
+        await viewModel.RefreshAsync(CancellationToken.None);
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => viewModel.RefreshAsync(cancellationSource.Token));
+
+        Assert.Equal("Aktualisiert", viewModel.StatusText);
+        Assert.Equal("Planning", Assert.Single(viewModel.Blocks).Title);
+    }
+
+    [Fact]
     public async Task RefreshAsync_SortsBlocksByLaneThenStartRatio()
     {
         var now = new DateTimeOffset(2026, 7, 9, 9, 0, 0, TimeSpan.Zero);
@@ -150,6 +171,22 @@ public sealed class TimelineSnapbarViewModelTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("boom");
+        }
+    }
+
+    private sealed class CancellingAfterInitialSnapshotClient(CalendarSnapshot initialSnapshot) : ISnapbarSnapshotClient
+    {
+        private bool hasLoadedInitialSnapshot;
+
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            if (!hasLoadedInitialSnapshot)
+            {
+                hasLoadedInitialSnapshot = true;
+                return Task.FromResult(initialSnapshot);
+            }
+
+            return Task.FromCanceled<CalendarSnapshot>(cancellationToken);
         }
     }
 }
