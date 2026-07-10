@@ -28,6 +28,23 @@ public sealed class CalendarTimelineHostServiceTests
         Assert.Equal("Kalenderdaten nicht verfügbar", Assert.IsType<ErrorResponse>(response).Message);
     }
 
+    [Fact]
+    public async Task RefreshSnapshotRequestClearsCachedSnapshotWhenLaterRefreshFails()
+    {
+        var snapshot = CreateSnapshot();
+        var service = new CalendarTimelineHostService(
+            new HostSnapshotCache(),
+            new SucceedsThenFailsHostSnapshotSource(snapshot));
+
+        var firstResponse = await service.HandleAsync(new RefreshSnapshotRequest(), TestContext.Current.CancellationToken);
+        var failedRefreshResponse = await service.HandleAsync(new RefreshSnapshotRequest(), TestContext.Current.CancellationToken);
+        var cachedResponse = await service.HandleAsync(new GetSnapshotRequest(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(snapshot, Assert.IsType<SnapshotResponse>(firstResponse).Snapshot);
+        Assert.Equal("Kalenderdaten nicht verfügbar", Assert.IsType<ErrorResponse>(failedRefreshResponse).Message);
+        Assert.Equal("Kalenderdaten nicht verfügbar", Assert.IsType<ErrorResponse>(cachedResponse).Message);
+    }
+
     private static CalendarSnapshot CreateSnapshot()
     {
         var now = new DateTimeOffset(2026, 7, 10, 12, 0, 0, TimeSpan.Zero);
@@ -52,6 +69,19 @@ public sealed class CalendarTimelineHostServiceTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             return Task.FromException<CalendarSnapshot>(new InvalidOperationException());
+        }
+    }
+
+    private sealed class SucceedsThenFailsHostSnapshotSource(CalendarSnapshot snapshot) : IHostSnapshotSource
+    {
+        private int calls;
+
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            calls++;
+            return calls == 1
+                ? Task.FromResult(snapshot)
+                : Task.FromException<CalendarSnapshot>(new InvalidOperationException());
         }
     }
 }
