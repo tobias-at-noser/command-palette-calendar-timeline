@@ -17,6 +17,12 @@ public sealed class HostSnapshotCache
         Status = status;
     }
 
+    public void MarkUnavailable()
+    {
+        snapshot = null;
+        Status = "Kalenderdaten nicht verfügbar";
+    }
+
     public CalendarTimelineResponse GetSnapshotResponse()
     {
         return snapshot is null

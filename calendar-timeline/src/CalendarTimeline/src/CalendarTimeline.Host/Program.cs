@@ -8,16 +8,15 @@ public static class Program
     public static async Task<int> Main(string[] args)
     {
         var cache = new HostSnapshotCache();
-        var snapshotSource = new FakeHostSnapshotSource();
 
         if (args.Contains("--fake-once", StringComparer.Ordinal))
         {
-            var snapshot = await snapshotSource.LoadSnapshotAsync(CancellationToken.None);
+            var snapshot = await new FakeHostSnapshotSource().LoadSnapshotAsync(CancellationToken.None);
             Console.WriteLine(CalendarSnapshotJson.Serialize(snapshot));
             return 0;
         }
 
-        var service = new CalendarTimelineHostService(cache, snapshotSource);
+        var service = new CalendarTimelineHostService(cache, new WorkerHostSnapshotSource());
         var server = new CalendarTimelinePipeServer();
 
         using var cancellationSource = new CancellationTokenSource();

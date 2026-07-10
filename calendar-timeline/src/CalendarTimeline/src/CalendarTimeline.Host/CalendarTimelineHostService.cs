@@ -5,9 +5,9 @@ namespace CalendarTimeline.Host;
 public sealed class CalendarTimelineHostService
 {
     private readonly HostSnapshotCache cache;
-    private readonly FakeHostSnapshotSource snapshotSource;
+    private readonly IHostSnapshotSource snapshotSource;
 
-    public CalendarTimelineHostService(HostSnapshotCache cache, FakeHostSnapshotSource snapshotSource)
+    public CalendarTimelineHostService(HostSnapshotCache cache, IHostSnapshotSource snapshotSource)
     {
         this.cache = cache;
         this.snapshotSource = snapshotSource;
@@ -26,8 +26,16 @@ public sealed class CalendarTimelineHostService
 
     private async Task<CalendarTimelineResponse> RefreshAsync(CancellationToken cancellationToken)
     {
-        var snapshot = await snapshotSource.LoadSnapshotAsync(cancellationToken);
-        cache.Update(snapshot, "ok");
-        return cache.GetSnapshotResponse();
+        try
+        {
+            var snapshot = await snapshotSource.LoadSnapshotAsync(cancellationToken);
+            cache.Update(snapshot, "ok");
+            return cache.GetSnapshotResponse();
+        }
+        catch
+        {
+            cache.MarkUnavailable();
+            return cache.GetSnapshotResponse();
+        }
     }
 }

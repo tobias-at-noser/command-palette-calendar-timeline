@@ -31,6 +31,19 @@ public sealed class HostSnapshotCacheTests
         Assert.Equal(snapshot, snapshotResponse.Snapshot);
     }
 
+    [Fact]
+    public void MarkUnavailableClearsAnExistingSnapshot()
+    {
+        var cache = new HostSnapshotCache();
+        cache.Update(CreateSnapshot(), "ok");
+
+        cache.MarkUnavailable();
+
+        Assert.Null(cache.Snapshot);
+        Assert.Equal("Kalenderdaten nicht verfügbar", cache.Status);
+        Assert.Equal("Kalenderdaten nicht verfügbar", Assert.IsType<ErrorResponse>(cache.GetSnapshotResponse()).Message);
+    }
+
     private static CalendarSnapshot CreateSnapshot()
     {
         var now = new DateTimeOffset(2026, 7, 10, 12, 0, 0, TimeSpan.Zero);
