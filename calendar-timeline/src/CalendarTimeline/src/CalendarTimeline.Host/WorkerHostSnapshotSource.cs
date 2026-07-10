@@ -138,7 +138,8 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
         var workerDllPath = Path.Combine(directory, "CalendarTimeline.Worker.dll");
         if (!File.Exists(workerDllPath)
             || !File.Exists(Path.Combine(directory, "CalendarTimeline.Worker.deps.json"))
-            || !File.Exists(Path.Combine(directory, "CalendarTimeline.Worker.runtimeconfig.json")))
+            || !File.Exists(Path.Combine(directory, "CalendarTimeline.Worker.runtimeconfig.json"))
+            || !File.Exists(Path.Combine(directory, "CalendarTimeline.Core.dll")))
         {
             return null;
         }

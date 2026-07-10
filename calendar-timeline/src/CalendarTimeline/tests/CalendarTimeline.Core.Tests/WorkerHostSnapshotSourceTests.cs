@@ -78,7 +78,7 @@ public sealed class WorkerHostSnapshotSourceTests
     [Theory]
     [InlineData("net10.0")]
     [InlineData("net10.0", "linux-musl-x64")]
-    public void ResolveWorkerExecutablePathFindsSiblingWorkerDllWithoutAnAppHost(string targetFramework, string? runtimeIdentifier = null)
+    public async Task ResolveWorkerExecutablePathFindsSiblingWorkerDllWithoutAnAppHost(string targetFramework, string? runtimeIdentifier = null)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -95,10 +95,7 @@ public sealed class WorkerHostSnapshotSourceTests
         try
         {
             Directory.CreateDirectory(hostOutputDirectory);
-            Directory.CreateDirectory(Path.GetDirectoryName(workerPath)!);
-            File.WriteAllText(workerPath, string.Empty);
-            File.WriteAllText(Path.ChangeExtension(workerPath, ".deps.json"), string.Empty);
-            File.WriteAllText(Path.ChangeExtension(workerPath, ".runtimeconfig.json"), string.Empty);
+            await BuildWorkerAsync(Path.GetDirectoryName(workerPath)!, runtimeIdentifier);
 
             Assert.Equal(workerPath, ResolveWorkerExecutablePath(hostOutputDirectory));
         }
@@ -109,7 +106,7 @@ public sealed class WorkerHostSnapshotSourceTests
     }
 
     [Fact]
-    public void ResolveWorkerExecutablePathFindsCoDeployedWorkerDll()
+    public async Task ResolveWorkerExecutablePathFindsCoDeployedWorkerDll()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -122,9 +119,7 @@ public sealed class WorkerHostSnapshotSourceTests
         try
         {
             Directory.CreateDirectory(outputDirectory);
-            File.WriteAllText(workerPath, string.Empty);
-            File.WriteAllText(Path.ChangeExtension(workerPath, ".deps.json"), string.Empty);
-            File.WriteAllText(Path.ChangeExtension(workerPath, ".runtimeconfig.json"), string.Empty);
+            await BuildWorkerAsync(outputDirectory);
 
             Assert.Equal(workerPath, ResolveWorkerExecutablePath(outputDirectory));
         }
@@ -195,6 +190,11 @@ public sealed class WorkerHostSnapshotSourceTests
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.deps.json")));
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.runtimeconfig.json")));
+            var corePath = Path.Combine(outputDirectory, "CalendarTimeline.Core.dll");
+            Assert.True(File.Exists(corePath));
+
+            File.Delete(corePath);
+            Assert.Null(FindWorkerArtifactPath(outputDirectory));
         }
         finally
         {
@@ -222,6 +222,23 @@ public sealed class WorkerHostSnapshotSourceTests
         return workerPath;
     }
 
+    private static async Task BuildWorkerAsync(string outputDirectory, string? runtimeIdentifier = null)
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"build \"{ResolveProjectPath("CalendarTimeline.Worker")}\"{(runtimeIdentifier is null ? " --no-restore" : $" -r {runtimeIdentifier}")} -o \"{outputDirectory}\"",
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        });
+        Assert.NotNull(process);
+
+        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+        var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Assert.True(process.ExitCode == 0, error);
+    }
+
     private static string ResolveWorkerExecutablePath(string hostBaseDirectory)
     {
         var method = typeof(WorkerHostSnapshotSource).GetMethod(
@@ -232,6 +249,15 @@ public sealed class WorkerHostSnapshotSourceTests
             modifiers: null);
         Assert.NotNull(method);
         return Assert.IsType<string>(method.Invoke(null, [hostBaseDirectory]));
+    }
+
+    private static string? FindWorkerArtifactPath(string directory)
+    {
+        var method = typeof(WorkerHostSnapshotSource).GetMethod(
+            "FindWorkerArtifactPath",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+        return method.Invoke(null, [directory]) as string;
     }
 
     private static string ResolveProjectPath(string projectName)
