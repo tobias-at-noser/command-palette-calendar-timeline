@@ -15,7 +15,9 @@ public static class TimelineSnapbarLayout
 
     public static double GetBlockTop(int lane, int laneCount)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(laneCount, 1);
         ArgumentOutOfRangeException.ThrowIfNegative(lane);
-        return (Math.Max(1, laneCount) - lane - 1) * LanePitch;
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(lane, laneCount);
+        return (laneCount - lane - 1) * LanePitch;
     }
 }
