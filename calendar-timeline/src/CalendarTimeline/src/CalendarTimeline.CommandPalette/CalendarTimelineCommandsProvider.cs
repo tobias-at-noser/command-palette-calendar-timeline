@@ -31,7 +31,7 @@ public sealed partial class CalendarTimelineCommandsProvider
         Id = "calendar-timeline.command-palette";
         Icon = new IconInfo("\uE787");
         commands = [new CommandItem(new NoOpCommand()) { Title = DisplayName, Subtitle = "Outlook calendar timeline dock band", Icon = Icon }];
-        dockBands = [new WrappedDockItem([dockBand], "calendar-timeline.dock-band", "Calendar Timeline") { Icon = Icon }];
+        dockBands = [dockBand];
 #endif
     }
 

@@ -7,7 +7,7 @@ namespace CalendarTimeline.CommandPalette;
 
 public sealed partial class CalendarTimelineDockBand
 #if WINDOWS
-    : ListItem
+    : WrappedDockItem
 #endif
 {
     private CalendarSnapshot? snapshot;

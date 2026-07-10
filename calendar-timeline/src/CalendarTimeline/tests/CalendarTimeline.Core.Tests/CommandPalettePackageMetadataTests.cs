@@ -137,6 +137,17 @@ public sealed class CommandPalettePackageMetadataTests
     }
 
     [Fact]
+    public void WindowsDockBandUsesWrappedDockItemForMultipleVisibleRows()
+    {
+        var source = File.ReadAllText(ProjectFile("CalendarTimelineDockBand.cs"));
+        var providerSource = File.ReadAllText(ProjectFile("CalendarTimelineCommandsProvider.cs"));
+
+        Assert.Contains(": WrappedDockItem", source);
+        Assert.Contains("Items = Rows.Select", source);
+        Assert.DoesNotContain("new WrappedDockItem([dockBand]", providerSource);
+    }
+
+    [Fact]
     public void WindowsDockBandOverridesSdkSubtitle()
     {
         var source = File.ReadAllText(ProjectFile("CalendarTimelineDockBand.cs"));
