@@ -102,6 +102,20 @@ public sealed class Task7ReviewFixTests
         }
     }
 
+    [Fact]
+    public void SnapbarSourceRefreshesAtOneMinuteIntervalsWithoutOverlappingRequests()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+
+        Assert.Contains("new DispatcherTimer", source);
+        Assert.Contains("TimeSpan.FromMinutes(1)", source);
+        Assert.Contains("if (refreshInProgress)", source);
+        Assert.Contains("refreshInProgress = true;", source);
+        Assert.Contains("refreshInProgress = false;", source);
+        Assert.Contains("refreshTimer.Stop();", source);
+        Assert.Contains("refreshTimer.Tick -= OnRefreshTimerTick;", source);
+    }
+
     private static int IndexOf(string source, string value)
     {
         return IndexOf(source, value, 0);
@@ -140,5 +154,19 @@ public sealed class Task7ReviewFixTests
         }
 
         throw new FileNotFoundException("Could not locate TrayApplicationContext.cs.");
+    }
+
+    private static string ResolveWpfSourcePath(string fileName)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "src", "CalendarTimeline.Wpf", fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not locate {fileName}.");
     }
 }

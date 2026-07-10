@@ -152,6 +152,8 @@ public sealed class WorkerHostSnapshotSourceTests
 
             Assert.True(process.ExitCode == 0, error);
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.exe")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.dll")));
         }
         finally
         {
@@ -165,7 +167,7 @@ public sealed class WorkerHostSnapshotSourceTests
     [Theory]
     [InlineData("win-x64")]
     [InlineData("win-arm64")]
-    public async Task HostPublishIncludesRunnableWorkerArtifacts(string runtimeIdentifier)
+    public async Task HostPublishIncludesRunnableWorkerAndWpfArtifacts(string runtimeIdentifier)
     {
         var hostProjectPath = ResolveProjectPath("CalendarTimeline.Host");
         var outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -190,8 +192,13 @@ public sealed class WorkerHostSnapshotSourceTests
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.deps.json")));
             Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.runtimeconfig.json")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.exe")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.dll")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.deps.json")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.runtimeconfig.json")));
             var corePath = Path.Combine(outputDirectory, "CalendarTimeline.Core.dll");
             Assert.True(File.Exists(corePath));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Snapbar.dll")));
 
             File.Delete(corePath);
             Assert.Null(FindWorkerArtifactPath(outputDirectory));

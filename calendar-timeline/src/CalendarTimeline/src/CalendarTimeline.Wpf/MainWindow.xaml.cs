@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using CalendarTimeline.Snapbar;
 
 namespace CalendarTimeline.Wpf;
@@ -13,6 +14,8 @@ public partial class MainWindow : Window
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;
     private readonly TimelineSnapbarViewModel viewModel;
+    private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+    private bool refreshInProgress;
 
     public MainWindow()
         : this(new TimelineSnapbarViewModel(new PipeSnapbarSnapshotClient()))
@@ -34,12 +37,44 @@ public partial class MainWindow : Window
         UpdateWindowHeight();
 
         Loaded += OnLoaded;
+        Closed += OnClosed;
         SizeChanged += OnSizeChanged;
+        refreshTimer.Tick += OnRefreshTimerTick;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
         viewModel.Blocks.CollectionChanged += (_, _) => UpdateLayoutMetrics();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        await RefreshAsync();
+        refreshTimer.Start();
+    }
+
+    private async void OnRefreshTimerTick(object? sender, EventArgs e)
+    {
+        if (refreshInProgress)
+        {
+            return;
+        }
+
+        refreshInProgress = true;
+        try
+        {
+            await RefreshAsync();
+        }
+        finally
+        {
+            refreshInProgress = false;
+        }
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        refreshTimer.Stop();
+        refreshTimer.Tick -= OnRefreshTimerTick;
+    }
+
+    private async Task RefreshAsync()
     {
         await viewModel.RefreshAsync(CancellationToken.None);
         UpdateLayoutMetrics();
