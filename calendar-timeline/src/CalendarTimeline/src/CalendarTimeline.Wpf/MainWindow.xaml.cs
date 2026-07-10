@@ -8,12 +8,10 @@ namespace CalendarTimeline.Wpf;
 
 public partial class MainWindow : Window
 {
-    private const double LaneHeight = 24;
-    private const double TimelinePadding = 8;
-    private const double StatusHeight = 16;
+    private const double GridVerticalMargin = 12;
+    private const double StatusRowHeight = 16;
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;
-    private const double NowRatio = 1d / 9d;
     private readonly TimelineSnapbarViewModel viewModel;
 
     public MainWindow()
@@ -62,27 +60,32 @@ public partial class MainWindow : Window
 
     private void UpdateLayoutMetrics()
     {
+        var laneCount = viewModel.Blocks.Count == 0 ? 1 : viewModel.Blocks.Max(block => block.Lane) + 1;
+        var timelineHeight = TimelineSnapbarLayout.GetTimelineHeight(laneCount);
         var timelineWidth = Math.Max(0, ActualWidth - TimelineWidthPadding);
-        NowLine.Margin = new Thickness(timelineWidth * NowRatio, 2, 0, 2);
-        UpdateWindowHeight();
+        BlocksCanvas.Height = timelineHeight;
+        TimelineGrid.Height = timelineHeight;
+        TimelineRail.Height = TimelineSnapbarLayout.RailHeight;
+        NowLine.Height = timelineHeight;
+        NowLine.Margin = new Thickness(timelineWidth * TimelineSnapbarLayout.NowRatio, 0, 0, 0);
+        UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 
         foreach (var block in viewModel.Blocks)
         {
             var button = CreateBlockButton(block, timelineWidth);
             Canvas.SetLeft(button, timelineWidth * block.StartRatio);
-            Canvas.SetTop(button, Math.Max(0, BlocksCanvas.Height - TimelinePadding - (block.Lane + 1) * LaneHeight));
+            Canvas.SetTop(button, TimelineSnapbarLayout.GetBlockTop(block.Lane, laneCount));
             BlocksCanvas.Children.Add(button);
         }
     }
 
-    private void UpdateWindowHeight()
+    private void UpdateWindowHeight(double? timelineHeight = null)
     {
-        var laneCount = viewModel.Blocks.Count == 0 ? 1 : viewModel.Blocks.Max(block => block.Lane) + 1;
-        var timelineHeight = TimelinePadding + laneCount * LaneHeight;
-        BlocksCanvas.Height = timelineHeight;
-        TimelineGrid.Height = timelineHeight;
-        Height = 12 + timelineHeight + (string.IsNullOrEmpty(viewModel.StatusText) ? 0 : StatusHeight);
+        var hasStatus = !string.IsNullOrEmpty(viewModel.StatusText);
+        StatusTextBlock.Visibility = hasStatus ? Visibility.Visible : Visibility.Collapsed;
+        Height = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
+            + (hasStatus ? StatusRowHeight : 0);
     }
 
     private static Button CreateBlockButton(TimelineBlockViewModel block, double timelineWidth)
@@ -91,9 +94,10 @@ public partial class MainWindow : Window
         {
             DataContext = block,
             Width = Math.Max(MinimumBlockWidth, timelineWidth * block.WidthRatio),
-            Height = LaneHeight - 2,
-            Padding = new Thickness(8, 2, 8, 2),
+            Height = TimelineSnapbarLayout.BubbleHeight,
+            Padding = new Thickness(8, 0, 8, 0),
             HorizontalContentAlignment = HorizontalAlignment.Left,
+            VerticalContentAlignment = VerticalAlignment.Center,
             BorderThickness = new Thickness(0),
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(block.IsRunning ? "#FF2E8B57" : "#FF336699")),
             ToolTip = new TextBlock { Text = block.Subtitle },
@@ -102,6 +106,7 @@ public partial class MainWindow : Window
                 Text = FormatBubbleText(block),
                 Foreground = Brushes.White,
                 FontWeight = FontWeights.SemiBold,
+                LineHeight = 16,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             },
         };

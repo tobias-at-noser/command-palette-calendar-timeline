@@ -62,6 +62,20 @@ public sealed class TimelineSnapbarViewModelTests
     }
 
     [Fact]
+    public async Task RefreshAsync_ProvidesTimeAndLocationForTheBubbleTooltip()
+    {
+        var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
+        var viewModel = new TimelineSnapbarViewModel(new StubSnapbarSnapshotClient(
+            new CalendarSnapshot(now, now.AddMinutes(-30), now.AddHours(4),
+                [new Appointment("1", "Planning", "Room 42", now, now.AddMinutes(30), false, false, null)], null)));
+
+        await viewModel.RefreshAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("Planning", Assert.Single(viewModel.Blocks).Title);
+        Assert.Equal("10:00–10:30 · Room 42", viewModel.Blocks.Single().Subtitle);
+    }
+
+    [Fact]
     public void TimelineBlockViewModel_ExposesOnlySharedProjectionState()
     {
         var propertyNames = typeof(TimelineBlockViewModel)

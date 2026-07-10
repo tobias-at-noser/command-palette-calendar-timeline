@@ -1,6 +1,7 @@
 <Window x:Class="CalendarTimeline.Wpf.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:snapbar="clr-namespace:CalendarTimeline.Snapbar;assembly=CalendarTimeline.Snapbar"
          Title="Calendar Timeline"
          Height="48"
          Width="800"
@@ -17,29 +18,29 @@
     </Grid.RowDefinitions>
 
     <Grid x:Name="TimelineGrid" Grid.Row="0">
-      <Border x:Name="TimelineRail"
-              Height="1"
-              VerticalAlignment="Bottom"
-              Margin="0,0,0,6">
+       <Border x:Name="TimelineRail"
+               Height="{x:Static snapbar:TimelineSnapbarLayout.RailHeight}"
+               VerticalAlignment="Bottom"
+               Margin="0,0,0,4">
         <Border.Background>
           <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
             <GradientStop Color="#001B2635" Offset="0" />
-            <GradientStop Color="#B01B2635" Offset="0.12" />
-            <GradientStop Color="#B01B2635" Offset="0.88" />
+             <GradientStop Color="#CC6A8296" Offset="0.12" />
+             <GradientStop Color="#CC6A8296" Offset="0.88" />
             <GradientStop Color="#001B2635" Offset="1" />
           </LinearGradientBrush>
         </Border.Background>
       </Border>
       <Border x:Name="NowLine"
-              Width="2"
-              HorizontalAlignment="Left"
-              Background="#FFF04444"
-              VerticalAlignment="Bottom"
-              Margin="0,2,0,2" />
+               Width="2"
+               HorizontalAlignment="Left"
+               Background="#FFF04444"
+               VerticalAlignment="Bottom" />
       <Canvas x:Name="BlocksCanvas" />
     </Grid>
 
-    <TextBlock Grid.Row="1"
+     <TextBlock x:Name="StatusTextBlock"
+                Grid.Row="1"
                Text="{Binding StatusText}"
                Foreground="#B01B2635"
                FontSize="10"
