@@ -12,13 +12,20 @@ public sealed partial class CalendarTimelineCommandsProvider
 #endif
 {
     private readonly CalendarTimelineDockBand dockBand = new();
+    private readonly IWorkerSnapshotClient workerClient;
 #if WINDOWS
     private readonly ICommandItem[] commands;
     private readonly ICommandItem[] dockBands;
 #endif
 
     public CalendarTimelineCommandsProvider()
+        : this(new WorkerProcessSnapshotClient())
     {
+    }
+
+    public CalendarTimelineCommandsProvider(IWorkerSnapshotClient workerClient)
+    {
+        this.workerClient = workerClient;
 #if WINDOWS
         DisplayName = "Calendar Timeline";
         Id = "calendar-timeline.command-palette";
@@ -45,6 +52,20 @@ public sealed partial class CalendarTimelineCommandsProvider
     public void Update(CalendarSnapshot snapshot)
     {
         dockBand.Update(snapshot);
+    }
+
+    public async Task<bool> RefreshFromWorkerAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            dockBand.Update(await workerClient.LoadSnapshotAsync(cancellationToken));
+            return true;
+        }
+        catch
+        {
+            dockBand.ApplyWorkerError("Outlook-Kalender nicht verfügbar");
+            return false;
+        }
     }
 
     public bool TryApplyWorkerSnapshot(string json)
