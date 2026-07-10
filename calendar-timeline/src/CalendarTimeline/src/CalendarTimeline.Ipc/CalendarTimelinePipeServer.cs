@@ -31,7 +31,16 @@ public sealed class CalendarTimelinePipeServer
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
             using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
 
-            var requestLine = await reader.ReadLineAsync(cancellationToken);
+            string? requestLine;
+            try
+            {
+                requestLine = await reader.ReadLineAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             if (requestLine is null)
             {
                 continue;
@@ -54,8 +63,15 @@ public sealed class CalendarTimelinePipeServer
                 responseJson = CreateErrorResponseJson(requestLine, exception);
             }
 
-            await writer.WriteLineAsync(responseJson);
-            await writer.FlushAsync(cancellationToken);
+            try
+            {
+                await writer.WriteLineAsync(responseJson);
+                await writer.FlushAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 
