@@ -1,8 +1,10 @@
 # Zwischenstand: PowerToys Command Palette Kalender-Timeline
 
+> Superseded: Die frühere Annahme einer grafischen horizontalen Dock-Timeline ist überholt. Das Dock ist jetzt als kompakte Agenda-/Status-Ansicht vorgesehen; die grafische Timeline liegt in der WPF-Snapbar. Siehe `2026-07-10-shared-core-dock-snapbar-design.md`.
+
 ## Ziel
 
-Ein PowerToys Command Palette Plugin zeigt Kalendertermine aus dem lokalen Outlook-Desktop-Profil als timeline-artige Dock-Ansicht für die nächsten Stunden.
+Dieser Zwischenstand dokumentiert die frühe Produktidee eines PowerToys Command Palette Plugins mit grafischer Timeline. Die aktuell gültige Richtung ist jedoch ein PowerToys Command Palette Dock für kompakte Agenda-/Status-Zeilen auf Basis von Kalenderterminen aus dem lokalen Outlook-Desktop-Profil; die grafische Timeline wird separat in einer WPF-Snapbar umgesetzt.
 
 ## Kontext und Randbedingungen
 
@@ -37,8 +39,8 @@ Ein PowerToys Command Palette Plugin zeigt Kalendertermine aus dem lokalen Outlo
 - Angezeigter Zeitraum: `now - 30 minutes` bis `now + 4 hours`.
 - Laufende und gerade vergangene Termine bleiben dadurch sichtbar.
 - Outlook-Datenrefresh: jede Minute.
-- UI-Animation: kontinuierlich zwischen Daten-Snapshots.
-- Zeitangaben sollen primär über Timeline-Labels/Achse sichtbar sein, nicht redundant auf jeder Karte.
+- In diesem Zwischenstand war eine kontinuierliche UI-Animation zwischen Daten-Snapshots vorgesehen; in der aktuellen Architektur betrifft das nur noch die WPF-Snapbar, nicht das Dock.
+- Zeitangaben sollten in der frühen Timeline-Idee primär über Achse/Labels sichtbar sein; in der aktuellen Dock-Richtung werden Zeiten kompakt über Titel/Untertitel vermittelt.
 
 ### Laufende und freie Zeit
 
@@ -60,14 +62,14 @@ Ein PowerToys Command Palette Plugin zeigt Kalendertermine aus dem lokalen Outlo
 
 ## Architektur
 
-Entschieden wurde Ansatz 1: Command Palette UI plus separater Outlook-COM-Worker.
+Entschieden wurde in diesem Zwischenstand Ansatz 1: Command Palette UI plus separater Outlook-COM-Worker.
 
-Das Plugin besteht aus zwei Teilen:
+Der historische Entwurf besteht aus zwei Teilen:
 
 1. Plugin/UI-Prozess
-   - rendert Dock-Ansicht, Timeline, Status und Teams-Buttons
+   - sollte eine Dock-Ansicht mit grafischer Timeline, Status und Teams-Aktion rendern
    - bleibt unabhängig vom Outlook-Zugriff responsiv
-   - animiert die Timeline kontinuierlich zwischen Snapshots
+   - sollte die Timeline kontinuierlich zwischen Snapshots animieren
 
 2. Separater Outlook-Worker-Prozess
    - liest Termine per Outlook COM/MAPI
@@ -90,24 +92,33 @@ Pro Termin werden benötigt:
 - Privat-/Confidential-Flag
 - Teams-Link, falls erkennbar
 
-Die UI rendert jeweils den letzten gültigen Snapshot und berechnet Positionen relativ zur aktuellen Uhrzeit selbst weiter.
+Die UI rendert jeweils den letzten gültigen Snapshot. In der ursprünglichen Dock-Timeline-Idee berechnete sie Positionen relativ zur aktuellen Uhrzeit selbst weiter; in der aktuellen Architektur passiert grafisches Layout in der WPF-Snapbar, während das Dock kompakte Agenda-/Status-Zeilen rendert.
 
 ## Dock UI
 
-Die Dock-Ansicht zeigt eine horizontale Timeline:
+Dieser Abschnitt beschreibt den damals favorisierten visuellen Entwurf und ist nicht mehr als aktuelle Implementierungsanforderung zu lesen.
 
-- feste vertikale `Jetzt`-Linie
-- Zeitachse und Terminblöcke bewegen sich kontinuierlich rechts-nach-links
-- beide Ränder blenden weich in Transparenz aus
-- Termine werden als Blöcke auf der Timeline dargestellt
-- überlappende Termine werden in mehreren Zeilen gestapelt
-- Terminblöcke zeigen Titel und Ort
-- Zeit wird über die Achse bzw. Labels vermittelt
-- laufende Termine erscheinen als `Now`-Block mit Restdauer
-- wenn kein Termin läuft, zeigt freie Fläche einen Countdown bis zum nächsten Termin
-- Termine mit Teams-Link zeigen einen kleinen Teams-Button zum Öffnen des Links
+Die frühe Dock-Idee zeigte eine horizontale Timeline mit:
 
-Der visuelle Entwurf wurde als passend bestätigt: horizontale Timeline-Bar mit fixer `Jetzt`-Linie, bewegten Blöcken, Fade-Rändern und gestapelten Überschneidungen.
+- fester vertikaler `Jetzt`-Linie
+- kontinuierlich rechts-nach-links bewegter Zeitachse und Terminblöcken
+- weich ausblendenden Rändern
+- Terminblöcken auf einer Zeitachse
+- gestapelten überlappenden Terminen
+- Titel und Ort im Block
+- Zeitvermittlung über Achse bzw. Labels
+- laufenden Terminen als `Now`-Block mit Restdauer
+- freier Fläche mit Countdown bis zum nächsten Termin, wenn kein Termin läuft
+- Teams-Aktion bei erkannten Teams-Links
+
+Aktuelle Implementierungsrichtung:
+
+- Das Command Palette Dock zeigt 1 bis 3 kompakte Agenda-/Status-Zeilen.
+- Das Dock nutzt nur API-konforme Felder wie Icon, Titel, Untertitel und Command.
+- Die grafische horizontale Timeline mit Achse, Lanes, `Jetzt`-Linie und Bewegungslogik gehört zur WPF-Snapbar.
+- Teams-Links werden im Dock über Command-/List-Item-Aktionen ausgelöst, nicht über frei platzierte grafische Buttons.
+
+Der visuelle Entwurf einer horizontalen Timeline-Bar mit fixer `Jetzt`-Linie, bewegten Blöcken, Fade-Rändern und gestapelten Überschneidungen bleibt als historischer Designstand relevant, ist aber durch die Dock-Agenda-/WPF-Snapbar-Architektur ersetzt.
 
 ## Fehlerverhalten
 
@@ -134,5 +145,5 @@ Graph würde typischerweise Berechtigungen wie `Calendars.Read`, `User.Read`, `o
 - Fehler-/Retry-Strategie konkretisieren
 - Testing-Strategie festlegen
 - Packaging/Sideloading-Schritte definieren
-- finalen Design-Check abschließen
-- danach vollständige Spec und Implementierungsplan erstellen
+- Dock-Agenda-/WPF-Snapbar-Migration in allen älteren Spezifikationen klar nachziehen
+- danach vollständige Spec und Implementierungsplan auf Basis der Shared-Core-/Snapbar-Architektur erstellen

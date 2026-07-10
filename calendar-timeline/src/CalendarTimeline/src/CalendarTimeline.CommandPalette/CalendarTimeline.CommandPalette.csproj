@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
+    <ProjectReference Include="..\CalendarTimeline.Ipc\CalendarTimeline.Ipc.csproj" />
   </ItemGroup>
   <ItemGroup Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">
     <PackageReference Include="Microsoft.CommandPalette.Extensions" Version="0.11.260520004" />

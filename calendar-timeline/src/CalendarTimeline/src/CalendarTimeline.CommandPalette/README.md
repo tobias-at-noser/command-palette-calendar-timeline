@@ -1,5 +1,12 @@
 # CalendarTimeline.CommandPalette
 
-Skeleton for the PowerToys Command Palette extension.
+PowerToys Command Palette extension for the Calendar Timeline project.
 
-The current project keeps SDK binding thin while the core timeline and worker contracts are developed. The final extension should replace the placeholder provider/dock-band classes with `Microsoft.CommandPalette.Extensions` types, expose the dock band via `GetDockBands()`, and render the timeline from `CalendarSnapshot` data.
+The extension is now a thin client over the shared architecture:
+
+- it connects to `CalendarTimeline.Host` through `CalendarTimeline.Ipc`
+- it renders compact agenda/status rows produced by `CalendarTimeline.Core.DockAgendaProjector`
+- it falls back to `Kalenderdaten nicht verfügbar` when the Host cannot be reached
+- it does not render the graphical timeline directly; that surface lives in `CalendarTimeline.Wpf`
+
+Use the repository README for end-to-end architecture and verification commands.

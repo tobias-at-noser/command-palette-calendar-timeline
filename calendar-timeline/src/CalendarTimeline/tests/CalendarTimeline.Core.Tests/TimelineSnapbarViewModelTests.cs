@@ -1,0 +1,100 @@
+using CalendarTimeline.Core;
+using CalendarTimeline.Snapbar;
+using Xunit;
+
+namespace CalendarTimeline.Core.Tests;
+
+public sealed class TimelineSnapbarViewModelTests
+{
+    [Fact]
+    public async Task RefreshAsync_MapsRunningAppointmentToHighlightedBlock()
+    {
+        var now = new DateTimeOffset(2026, 7, 9, 9, 30, 0, TimeSpan.Zero);
+        var snapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(2),
+            [
+                new Appointment("running", "Daily", "Teams", now.AddMinutes(-10), now.AddMinutes(20), false, false, "https://teams.microsoft.com/l/meetup-join/running"),
+            ],
+            null);
+        var viewModel = new TimelineSnapbarViewModel(new StubSnapbarSnapshotClient(snapshot));
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        var block = Assert.Single(viewModel.Blocks);
+        Assert.True(block.IsRunning);
+        Assert.Equal("Daily", block.Title);
+        Assert.Equal("https://teams.microsoft.com/l/meetup-join/running", block.TeamsUrl);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_SetsUnavailableStatusWhenSnapshotClientFails()
+    {
+        var viewModel = new TimelineSnapbarViewModel(new FailingSnapbarSnapshotClient());
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        Assert.Equal("Kalenderdaten nicht verfügbar", viewModel.StatusText);
+        Assert.Empty(viewModel.Blocks);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_SortsBlocksByLaneThenStartRatio()
+    {
+        var now = new DateTimeOffset(2026, 7, 9, 9, 0, 0, TimeSpan.Zero);
+        var snapshot = new CalendarSnapshot(
+            now,
+            now,
+            now.AddHours(2),
+            [
+                new Appointment("lane-one", "Lane One", "Room 1", now.AddMinutes(10), now.AddMinutes(70), false, false, null),
+                new Appointment("lane-zero-early", "Lane Zero Early", "Room 0", now, now.AddMinutes(30), false, false, null),
+                new Appointment("lane-zero-late", "Lane Zero Late", "Room 0", now.AddMinutes(30), now.AddMinutes(60), false, false, null),
+            ],
+            null);
+        var viewModel = new TimelineSnapbarViewModel(new StubSnapbarSnapshotClient(snapshot));
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        Assert.Equal(["Lane Zero Early", "Lane Zero Late", "Lane One"], viewModel.Blocks.Select(block => block.Title).ToArray());
+        Assert.Equal([0, 0, 1], viewModel.Blocks.Select(block => block.Lane).ToArray());
+    }
+
+    [Fact]
+    public void TimelineBlockViewModel_ExposesOnlySharedProjectionState()
+    {
+        var propertyNames = typeof(TimelineBlockViewModel)
+            .GetProperties()
+            .Select(property => property.Name)
+            .OrderBy(name => name)
+            .ToArray();
+
+        Assert.Equal([
+            "HasTeamsUrl",
+            "IsRunning",
+            "Lane",
+            "StartRatio",
+            "Subtitle",
+            "TeamsUrl",
+            "Title",
+            "WidthRatio",
+        ], propertyNames);
+    }
+
+    private sealed class StubSnapbarSnapshotClient(CalendarSnapshot snapshot) : ISnapbarSnapshotClient
+    {
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(snapshot);
+        }
+    }
+
+    private sealed class FailingSnapbarSnapshotClient : ISnapbarSnapshotClient
+    {
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("boom");
+        }
+    }
+}

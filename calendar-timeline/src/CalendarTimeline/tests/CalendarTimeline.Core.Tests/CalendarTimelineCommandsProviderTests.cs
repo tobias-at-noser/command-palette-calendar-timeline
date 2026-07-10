@@ -7,7 +7,7 @@ namespace CalendarTimeline.Core.Tests;
 public sealed class CalendarTimelineCommandsProviderTests
 {
     [Fact]
-    public void TryApplyWorkerSnapshotUpdatesDockBandFromJson()
+    public async Task RefreshFromHostUpdatesDockBandFromHostSnapshot()
     {
         var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
         var snapshot = new CalendarSnapshot(
@@ -16,40 +16,19 @@ public sealed class CalendarTimelineCommandsProviderTests
             now.AddHours(4),
             [new Appointment("1", "Termin", "Raum", now, now.AddMinutes(30), false, false, null)],
             null);
-        var provider = new CalendarTimelineCommandsProvider();
+        var hostClient = new StubHostSnapshotClient(snapshot);
+        var provider = new CalendarTimelineCommandsProvider(hostClient);
 
-        var applied = provider.TryApplyWorkerSnapshot(CalendarSnapshotJson.Serialize(snapshot));
-
-        Assert.True(applied);
-        Assert.Equal(snapshot.GeneratedAt, provider.DockBand.Snapshot?.GeneratedAt);
-        Assert.Single(provider.DockBand.Blocks);
-        Assert.Equal(string.Empty, provider.DockBand.StatusMessage);
-    }
-
-    [Fact]
-    public async Task RefreshFromWorkerUpdatesDockBandFromWorkerSnapshot()
-    {
-        var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
-        var snapshot = new CalendarSnapshot(
-            now,
-            now.AddMinutes(-30),
-            now.AddHours(4),
-            [new Appointment("1", "Termin", "Raum", now, now.AddMinutes(30), false, false, null)],
-            null);
-        var workerClient = new StubWorkerSnapshotClient(snapshot);
-        var provider = new CalendarTimelineCommandsProvider(workerClient);
-
-        var refreshed = await provider.RefreshFromWorkerAsync(TestContext.Current.CancellationToken);
+        var refreshed = await provider.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.True(refreshed);
-        Assert.Equal(1, workerClient.Calls);
+        Assert.Equal(1, hostClient.Calls);
         Assert.Same(snapshot, provider.DockBand.Snapshot);
-        Assert.Single(provider.DockBand.Blocks);
         Assert.Equal(string.Empty, provider.DockBand.StatusMessage);
     }
 
     [Fact]
-    public async Task RefreshFromWorkerKeepsLastSnapshotWhenWorkerFails()
+    public async Task RefreshFromHostKeepsLastSnapshotWhenHostFails()
     {
         var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
         var snapshot = new CalendarSnapshot(
@@ -58,35 +37,22 @@ public sealed class CalendarTimelineCommandsProviderTests
             now.AddHours(4),
             [new Appointment("1", "Termin", "Raum", now, now.AddMinutes(30), false, false, null)],
             null);
-        var provider = new CalendarTimelineCommandsProvider(new FailingWorkerSnapshotClient());
+        var provider = new CalendarTimelineCommandsProvider(new FailingHostSnapshotClient());
         provider.Update(snapshot);
 
-        var refreshed = await provider.RefreshFromWorkerAsync(TestContext.Current.CancellationToken);
+        var refreshed = await provider.RefreshAsync(TestContext.Current.CancellationToken);
 
         Assert.False(refreshed);
         Assert.Same(snapshot, provider.DockBand.Snapshot);
-        Assert.Equal("Outlook-Kalender nicht verfügbar", provider.DockBand.StatusMessage);
-        Assert.Single(provider.DockBand.Blocks);
+        Assert.Equal("Kalenderdaten nicht verfügbar", provider.DockBand.StatusMessage);
+        Assert.Single(provider.DockBand.Rows);
     }
 
     [Fact]
-    public void TryApplyWorkerSnapshotKeepsLastSnapshotWhenJsonIsInvalid()
+    public void DefaultConstructorUsesPipeHostSnapshotClient()
     {
-        var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
-        var snapshot = new CalendarSnapshot(
-            now,
-            now.AddMinutes(-30),
-            now.AddHours(4),
-            [new Appointment("1", "Termin", "Raum", now, now.AddMinutes(30), false, false, null)],
-            null);
         var provider = new CalendarTimelineCommandsProvider();
-        provider.Update(snapshot);
 
-        var applied = provider.TryApplyWorkerSnapshot("not-json");
-
-        Assert.False(applied);
-        Assert.Same(snapshot, provider.DockBand.Snapshot);
-        Assert.Equal("Outlook-Kalender nicht verfügbar", provider.DockBand.StatusMessage);
-        Assert.Single(provider.DockBand.Blocks);
+        Assert.IsType<PipeHostSnapshotClient>(provider.HostSnapshotClient);
     }
 }

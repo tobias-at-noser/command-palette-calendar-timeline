@@ -11,21 +11,21 @@ public sealed partial class CalendarTimelineCommandsProvider
     : CommandProvider
 #endif
 {
-    private readonly CalendarTimelineDockBand dockBand = new();
-    private readonly IWorkerSnapshotClient workerClient;
+    private readonly CalendarTimelineDockBand dockBand;
 #if WINDOWS
     private readonly ICommandItem[] commands;
     private readonly ICommandItem[] dockBands;
 #endif
 
     public CalendarTimelineCommandsProvider()
-        : this(new WorkerProcessSnapshotClient())
+        : this(new PipeHostSnapshotClient())
     {
     }
 
-    public CalendarTimelineCommandsProvider(IWorkerSnapshotClient workerClient)
+    public CalendarTimelineCommandsProvider(IHostSnapshotClient hostSnapshotClient)
     {
-        this.workerClient = workerClient;
+        HostSnapshotClient = hostSnapshotClient;
+        dockBand = new CalendarTimelineDockBand(hostSnapshotClient);
 #if WINDOWS
         DisplayName = "Calendar Timeline";
         Id = "calendar-timeline.command-palette";
@@ -36,6 +36,8 @@ public sealed partial class CalendarTimelineCommandsProvider
     }
 
     public CalendarTimelineDockBand DockBand => dockBand;
+
+    public IHostSnapshotClient HostSnapshotClient { get; }
 
 #if WINDOWS
     public override ICommandItem[] TopLevelCommands()
@@ -54,31 +56,8 @@ public sealed partial class CalendarTimelineCommandsProvider
         dockBand.Update(snapshot);
     }
 
-    public async Task<bool> RefreshFromWorkerAsync(CancellationToken cancellationToken)
+    public Task<bool> RefreshAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            dockBand.Update(await workerClient.LoadSnapshotAsync(cancellationToken));
-            return true;
-        }
-        catch
-        {
-            dockBand.ApplyWorkerError("Outlook-Kalender nicht verfügbar");
-            return false;
-        }
-    }
-
-    public bool TryApplyWorkerSnapshot(string json)
-    {
-        try
-        {
-            dockBand.Update(CalendarSnapshotJson.Deserialize(json));
-            return true;
-        }
-        catch
-        {
-            dockBand.ApplyWorkerError("Outlook-Kalender nicht verfügbar");
-            return false;
-        }
+        return dockBand.RefreshAsync(cancellationToken);
     }
 }
