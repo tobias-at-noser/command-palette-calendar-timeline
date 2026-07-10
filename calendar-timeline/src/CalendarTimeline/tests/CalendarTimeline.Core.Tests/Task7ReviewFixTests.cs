@@ -69,6 +69,19 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void TrayLoopExitAndServerFailureCancelTheSharedHostToken()
+    {
+        var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
+
+        Assert.Contains("serverTask.ContinueWith", programSource);
+        Assert.Contains("_ => cancellationSource.Cancel()", programSource);
+        Assert.True(IndexOf(programSource, "System.Windows.Forms.Application.Run(context);")
+            < IndexOf(programSource, "cancellationSource.Cancel();", IndexOf(programSource, "System.Windows.Forms.Application.Run(context);")));
+        Assert.True(IndexOf(programSource, "cancellationSource.Cancel();", IndexOf(programSource, "System.Windows.Forms.Application.Run(context);") )
+            < IndexOf(programSource, "await serverTask;"));
+    }
+
+    [Fact]
     public void ResolveTrayApplicationContextPathFindsSourceWithoutRuntimeIdentifierDirectory()
     {
         var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -91,7 +104,12 @@ public sealed class Task7ReviewFixTests
 
     private static int IndexOf(string source, string value)
     {
-        var index = source.IndexOf(value, StringComparison.Ordinal);
+        return IndexOf(source, value, 0);
+    }
+
+    private static int IndexOf(string source, string value, int startIndex)
+    {
+        var index = source.IndexOf(value, startIndex, StringComparison.Ordinal);
         Assert.True(index >= 0, $"Could not find '{value}' in TrayApplicationContext.cs.");
         return index;
     }

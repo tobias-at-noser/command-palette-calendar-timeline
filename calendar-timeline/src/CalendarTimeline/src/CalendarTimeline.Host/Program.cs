@@ -52,7 +52,20 @@ public static class Program
         using var context = new TrayApplicationContext(service, cancellationToken, cancellationSource.Cancel);
         using var cancellationRegistration = cancellationToken.Register(context.ExitThreadSafely);
         var serverTask = server.RunAsync(service.HandleAsync, cancellationToken);
-        System.Windows.Forms.Application.Run(context);
+        _ = serverTask.ContinueWith(
+            _ => cancellationSource.Cancel(),
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+        try
+        {
+            System.Windows.Forms.Application.Run(context);
+        }
+        finally
+        {
+            cancellationSource.Cancel();
+        }
+
         await serverTask;
 #else
         await server.RunAsync(service.HandleAsync, cancellationToken);
