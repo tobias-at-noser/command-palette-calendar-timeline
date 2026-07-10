@@ -4,7 +4,8 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <UseAppHost>true</UseAppHost>
+    <UseAppHost Condition="'$(RuntimeIdentifier)' != ''">true</UseAppHost>
+    <UseAppHost Condition="'$(RuntimeIdentifier)' == ''">false</UseAppHost>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
