@@ -13,6 +13,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly HostSettingsStore settingsStore;
     private readonly SnapbarProcessController snapbarProcessController;
     private readonly AutostartManager autostartManager;
+    private readonly Control shutdownDispatcher;
     private readonly NotifyIcon notifyIcon;
     private ToolStripMenuItem? autostartMenuItem;
     private HostSettings settings = HostSettings.Default;
@@ -36,6 +37,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         this.settingsStore = settingsStore;
         this.snapbarProcessController = snapbarProcessController;
         this.autostartManager = autostartManager;
+        shutdownDispatcher = new Control();
+        shutdownDispatcher.CreateControl();
         settings = settingsStore.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         notifyIcon = new NotifyIcon
         {
@@ -53,6 +56,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         {
             notifyIcon.Visible = false;
             notifyIcon.Dispose();
+            shutdownDispatcher.Dispose();
         }
 
         base.Dispose(disposing);
@@ -82,6 +86,28 @@ public sealed class TrayApplicationContext : ApplicationContext
             ExitThread();
         });
         return menu;
+    }
+
+    internal void ExitThreadSafely()
+    {
+        if (shutdownDispatcher.IsDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            if (shutdownDispatcher.InvokeRequired)
+            {
+                shutdownDispatcher.BeginInvoke((Action)ExitThread);
+                return;
+            }
+
+            ExitThread();
+        }
+        catch (InvalidOperationException) when (shutdownDispatcher.IsDisposed || shutdownDispatcher.Disposing)
+        {
+        }
     }
 
     private async Task ShowTimelineAsync()

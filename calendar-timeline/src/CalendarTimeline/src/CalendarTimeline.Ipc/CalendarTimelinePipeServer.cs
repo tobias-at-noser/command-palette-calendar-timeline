@@ -8,16 +8,34 @@ public sealed class CalendarTimelinePipeServer
 {
     private readonly string pipeName;
     private readonly Action? requestReadStarted;
+    private readonly Func<Task>? responseWriteStarted;
+    private readonly Action? clientFinished;
 
     public CalendarTimelinePipeServer(string? pipeName = null)
-        : this(pipeName, null)
+        : this(pipeName, null, null, null)
     {
     }
 
     internal CalendarTimelinePipeServer(string? pipeName, Action? requestReadStarted)
+        : this(pipeName, requestReadStarted, null, null)
+    {
+    }
+
+    internal CalendarTimelinePipeServer(string? pipeName, Action? requestReadStarted, Func<Task>? responseWriteStarted)
+        : this(pipeName, requestReadStarted, responseWriteStarted, null)
+    {
+    }
+
+    internal CalendarTimelinePipeServer(
+        string? pipeName,
+        Action? requestReadStarted,
+        Func<Task>? responseWriteStarted,
+        Action? clientFinished)
     {
         this.pipeName = string.IsNullOrWhiteSpace(pipeName) ? CalendarTimelinePipeNames.Default : pipeName;
         this.requestReadStarted = requestReadStarted;
+        this.responseWriteStarted = responseWriteStarted;
+        this.clientFinished = clientFinished;
     }
 
     public async Task RunAsync(Func<CalendarTimelineRequest, CancellationToken, Task<CalendarTimelineResponse>> handler, CancellationToken cancellationToken)
@@ -35,51 +53,71 @@ public sealed class CalendarTimelinePipeServer
                 break;
             }
 
-            using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
-            using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
-
-            string? requestLine;
             try
             {
-                var requestLineTask = reader.ReadLineAsync(cancellationToken).AsTask();
-                requestReadStarted?.Invoke();
-                requestLine = await requestLineTask;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
+                using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
+                using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
 
-            if (requestLine is null)
+                string? requestLine;
+                try
+                {
+                    var requestLineTask = reader.ReadLineAsync(cancellationToken).AsTask();
+                    requestReadStarted?.Invoke();
+                    requestLine = await requestLineTask;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (requestLine is null)
+                {
+                    continue;
+                }
+
+                string responseJson;
+
+                try
+                {
+                    var request = CalendarTimelinePipeJson.DeserializeRequest(requestLine);
+                    var response = await handler(request, cancellationToken);
+                    responseJson = CalendarTimelinePipeJson.SerializeResponse(response);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception exception)
+                {
+                    responseJson = CreateErrorResponseJson(requestLine, exception);
+                }
+
+                try
+                {
+                    if (responseWriteStarted is not null)
+                    {
+                        await responseWriteStarted();
+                    }
+
+                    await writer.WriteLineAsync(responseJson.AsMemory(), cancellationToken);
+                    await writer.FlushAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (IOException)
+                {
+                    continue;
+                }
+            }
+            catch (IOException)
             {
                 continue;
             }
-
-            string responseJson;
-
-            try
+            finally
             {
-                var request = CalendarTimelinePipeJson.DeserializeRequest(requestLine);
-                var response = await handler(request, cancellationToken);
-                responseJson = CalendarTimelinePipeJson.SerializeResponse(response);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception exception)
-            {
-                responseJson = CreateErrorResponseJson(requestLine, exception);
-            }
-
-            try
-            {
-                await writer.WriteLineAsync(responseJson.AsMemory(), cancellationToken);
-                await writer.FlushAsync(cancellationToken);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
+                clientFinished?.Invoke();
             }
         }
     }

@@ -57,6 +57,18 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void ConsoleCancelKeyPressRequestsTrayExitAfterCancellingHost()
+    {
+        var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
+        var traySource = File.ReadAllText(ResolveHostSourcePath("TrayApplicationContext.cs"));
+
+        Assert.Contains("cancellationSource.Cancel();", programSource);
+        Assert.Contains("cancellationToken.Register(context.ExitThreadSafely);", programSource);
+        Assert.Contains("internal void ExitThreadSafely()", traySource);
+        Assert.Contains("shutdownDispatcher.BeginInvoke((Action)ExitThread);", traySource);
+    }
+
+    [Fact]
     public void ResolveTrayApplicationContextPathFindsSourceWithoutRuntimeIdentifierDirectory()
     {
         var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
