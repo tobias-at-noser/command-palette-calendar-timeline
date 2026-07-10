@@ -13,6 +13,9 @@ public sealed partial class CalendarTimelineDockBand
     private CalendarSnapshot? snapshot;
 
     public CalendarTimelineDockBand()
+#if WINDOWS
+        : base([], "calendar-timeline.dock-band", "Calendar Timeline")
+#endif
     {
 #if WINDOWS
         Icon = new IconInfo("\uE787");

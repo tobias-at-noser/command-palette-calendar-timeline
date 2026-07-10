@@ -143,6 +143,7 @@ public sealed class CommandPalettePackageMetadataTests
         var providerSource = File.ReadAllText(ProjectFile("CalendarTimelineCommandsProvider.cs"));
 
         Assert.Contains(": WrappedDockItem", source);
+        Assert.Contains(": base([], \"calendar-timeline.dock-band\", \"Calendar Timeline\")", source);
         Assert.Contains("Items = Rows.Select", source);
         Assert.DoesNotContain("new WrappedDockItem([dockBand]", providerSource);
     }
