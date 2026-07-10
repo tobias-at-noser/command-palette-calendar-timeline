@@ -1,41 +1,48 @@
 <Window x:Class="CalendarTimeline.Wpf.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Calendar Timeline"
-        Height="96"
-        Width="800"
-        WindowStyle="None"
+         Title="Calendar Timeline"
+         Height="48"
+         Width="800"
+         WindowStyle="None"
         ResizeMode="NoResize"
         Topmost="True"
         ShowInTaskbar="False"
-        AllowsTransparency="False"
-        Background="#FF101820">
-  <Grid Margin="12,8">
+         AllowsTransparency="True"
+         Background="Transparent">
+  <Grid Margin="12,6">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <TextBlock Grid.Row="0"
-               Text="Kalender"
-               Foreground="White"
-               FontWeight="SemiBold"
-               FontSize="14" />
-
-    <Grid Grid.Row="1" Margin="0,8,0,6">
-      <Border Background="#FF1B2635" CornerRadius="8" />
+    <Grid x:Name="TimelineGrid" Grid.Row="0">
+      <Border x:Name="TimelineRail"
+              Height="1"
+              VerticalAlignment="Bottom"
+              Margin="0,0,0,6">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#001B2635" Offset="0" />
+            <GradientStop Color="#B01B2635" Offset="0.12" />
+            <GradientStop Color="#B01B2635" Offset="0.88" />
+            <GradientStop Color="#001B2635" Offset="1" />
+          </LinearGradientBrush>
+        </Border.Background>
+      </Border>
       <Border x:Name="NowLine"
               Width="2"
               HorizontalAlignment="Left"
               Background="#FFF04444"
-              Margin="0,4,0,4" />
+              VerticalAlignment="Bottom"
+              Margin="0,2,0,2" />
       <Canvas x:Name="BlocksCanvas" />
     </Grid>
 
-    <TextBlock Grid.Row="2"
+    <TextBlock Grid.Row="1"
                Text="{Binding StatusText}"
-               Foreground="#FFD5E3F0"
-               FontSize="11" />
+               Foreground="#B01B2635"
+               FontSize="10"
+               Margin="0,3,0,0" />
   </Grid>
 </Window>

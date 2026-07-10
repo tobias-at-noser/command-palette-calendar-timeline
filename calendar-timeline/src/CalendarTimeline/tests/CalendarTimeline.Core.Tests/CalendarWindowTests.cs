@@ -14,5 +14,8 @@ public sealed class CalendarWindowTests
 
         Assert.Equal(now.AddMinutes(-30), window.Start);
         Assert.Equal(now.AddHours(4), window.End);
+        Assert.Equal(TimeSpan.FromHours(4.5), window.End - window.Start);
+        Assert.Equal(TimeSpan.FromMinutes(30), now - window.Start);
+        Assert.Equal(1d / 9d, (now - window.Start).TotalMinutes / (window.End - window.Start).TotalMinutes, 10);
     }
 }

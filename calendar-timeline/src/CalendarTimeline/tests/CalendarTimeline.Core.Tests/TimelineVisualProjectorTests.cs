@@ -47,6 +47,22 @@ public sealed class TimelineVisualProjectorTests
         Assert.Equal(1, blocks[0].EndRatio);
     }
 
+    [Fact]
+    public void Project_KeepsLocationInTooltipSubtitle()
+    {
+        var now = new DateTimeOffset(2026, 7, 9, 9, 30, 0, TimeSpan.Zero);
+        var snapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [new Appointment("1", "Planning", "Room 42", now, now.AddMinutes(30), false, false, null)],
+            null);
+
+        var block = Assert.Single(TimelineVisualProjector.Project(snapshot));
+
+        Assert.Equal("09:30–10:00 · Room 42", block.DisplaySubtitle);
+    }
+
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
