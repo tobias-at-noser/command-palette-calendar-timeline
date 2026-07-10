@@ -31,11 +31,13 @@
           </LinearGradientBrush>
         </Border.Background>
       </Border>
-      <Border x:Name="NowLine"
-               Width="2"
-               HorizontalAlignment="Left"
-               Background="#FFF04444"
-               VerticalAlignment="Bottom" />
+       <Border x:Name="NowLine"
+                Width="2"
+                HorizontalAlignment="Left"
+                Background="#FFF04444"
+                VerticalAlignment="Bottom"
+                Panel.ZIndex="1"
+                IsHitTestVisible="False" />
       <Canvas x:Name="BlocksCanvas" />
     </Grid>
 

@@ -20,4 +20,16 @@ public static class TimelineSnapbarLayout
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(lane, laneCount);
         return (laneCount - lane - 1) * LanePitch;
     }
+
+    public static (double Left, double Width) GetBlockBounds(
+        double timelineWidth,
+        double startRatio,
+        double widthRatio,
+        double minimumWidth)
+    {
+        timelineWidth = Math.Max(0, timelineWidth);
+        var width = Math.Min(timelineWidth, Math.Max(0, Math.Max(minimumWidth, timelineWidth * widthRatio)));
+        var left = Math.Clamp(timelineWidth * startRatio, 0, timelineWidth - width);
+        return (left, width);
+    }
 }

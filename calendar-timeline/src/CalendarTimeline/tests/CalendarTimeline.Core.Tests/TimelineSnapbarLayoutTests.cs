@@ -59,4 +59,24 @@ public sealed class TimelineSnapbarLayoutTests
     {
         Assert.Equal(1d / 9d, TimelineSnapbarLayout.NowRatio, 10);
     }
+
+    [Fact]
+    public void GetBlockBounds_ClampsAMinimumWidthBubbleAtTheRightEdge()
+    {
+        var bounds = TimelineSnapbarLayout.GetBlockBounds(100, 0.95, 0.01, 36);
+
+        Assert.Equal(64, bounds.Left);
+        Assert.Equal(36, bounds.Width);
+        Assert.Equal(100, bounds.Left + bounds.Width);
+    }
+
+    [Fact]
+    public void GetBlockBounds_FitsTheBubbleInsideANarrowTimeline()
+    {
+        var bounds = TimelineSnapbarLayout.GetBlockBounds(20, 0.8, 0.1, 36);
+
+        Assert.Equal(0, bounds.Left);
+        Assert.Equal(20, bounds.Width);
+        Assert.Equal(20, bounds.Left + bounds.Width);
+    }
 }

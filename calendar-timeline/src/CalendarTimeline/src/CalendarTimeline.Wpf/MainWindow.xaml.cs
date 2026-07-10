@@ -73,8 +73,13 @@ public partial class MainWindow : Window
 
         foreach (var block in viewModel.Blocks)
         {
-            var button = CreateBlockButton(block, timelineWidth);
-            Canvas.SetLeft(button, timelineWidth * block.StartRatio);
+            var bounds = TimelineSnapbarLayout.GetBlockBounds(
+                timelineWidth,
+                block.StartRatio,
+                block.WidthRatio,
+                MinimumBlockWidth);
+            var button = CreateBlockButton(block, bounds.Width);
+            Canvas.SetLeft(button, bounds.Left);
             Canvas.SetTop(button, TimelineSnapbarLayout.GetBlockTop(block.Lane, laneCount));
             BlocksCanvas.Children.Add(button);
         }
@@ -88,12 +93,12 @@ public partial class MainWindow : Window
             + (hasStatus ? StatusRowHeight : 0);
     }
 
-    private static Button CreateBlockButton(TimelineBlockViewModel block, double timelineWidth)
+    private static Button CreateBlockButton(TimelineBlockViewModel block, double width)
     {
         var button = new Button
         {
             DataContext = block,
-            Width = Math.Max(MinimumBlockWidth, timelineWidth * block.WidthRatio),
+            Width = width,
             Height = TimelineSnapbarLayout.BubbleHeight,
             Padding = new Thickness(8, 0, 8, 0),
             HorizontalContentAlignment = HorizontalAlignment.Left,
