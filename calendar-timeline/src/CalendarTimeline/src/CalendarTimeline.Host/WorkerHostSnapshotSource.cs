@@ -6,6 +6,7 @@ namespace CalendarTimeline.Host;
 public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
 {
     private readonly string workerExecutablePath;
+    private readonly bool launchesViaDotnet;
 
     public WorkerHostSnapshotSource()
         : this(ResolveWorkerExecutablePath())
@@ -16,6 +17,7 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workerExecutablePath);
         this.workerExecutablePath = workerExecutablePath;
+        launchesViaDotnet = string.Equals(Path.GetExtension(workerExecutablePath), ".dll", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
@@ -23,44 +25,85 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
-            FileName = workerExecutablePath,
-            ArgumentList = { "--outlook-once" },
+            FileName = launchesViaDotnet ? "dotnet" : workerExecutablePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(workerExecutablePath) ?? AppContext.BaseDirectory,
         };
-
-        if (!process.Start())
+        if (launchesViaDotnet)
         {
-            throw new InvalidOperationException("Calendar worker could not be started.");
+            process.StartInfo.ArgumentList.Add(workerExecutablePath);
         }
 
-        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        var output = await outputTask;
-        var error = await errorTask;
+        process.StartInfo.ArgumentList.Add("--outlook-once");
 
-        if (process.ExitCode != 0)
+        var hasStarted = false;
+        try
         {
-            throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? "Calendar worker failed." : error.Trim());
+            if (!process.Start())
+            {
+                throw new InvalidOperationException("Calendar worker could not be started.");
+            }
+
+            hasStarted = true;
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            var output = await outputTask;
+            var error = await errorTask;
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? "Calendar worker failed." : error.Trim());
+            }
+
+            return CalendarSnapshotJson.Deserialize(output);
+        }
+        catch
+        {
+            if (hasStarted)
+            {
+                await StopProcessAsync(process);
+            }
+
+            throw;
+        }
+    }
+
+    private static async Task StopProcessAsync(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // The worker exited between the status check and the kill request.
         }
 
-        return CalendarSnapshotJson.Deserialize(output);
+        await process.WaitForExitAsync(CancellationToken.None);
     }
 
     private static string ResolveWorkerExecutablePath()
     {
-        var workerFileName = OperatingSystem.IsWindows() ? "CalendarTimeline.Worker.exe" : "CalendarTimeline.Worker";
-        var directPath = Path.Combine(AppContext.BaseDirectory, workerFileName);
+        return ResolveWorkerExecutablePath(AppContext.BaseDirectory);
+    }
+
+    private static string ResolveWorkerExecutablePath(string hostBaseDirectory)
+    {
+        var directPath = FindWorkerArtifactPath(hostBaseDirectory);
         if (File.Exists(directPath))
         {
             return directPath;
         }
 
-        var hostBaseDirectory = new DirectoryInfo(AppContext.BaseDirectory);
-        for (var directory = hostBaseDirectory; directory is not null; directory = directory.Parent)
+        var baseDirectory = new DirectoryInfo(hostBaseDirectory);
+        for (var directory = baseDirectory; directory is not null; directory = directory.Parent)
         {
             if (!string.Equals(directory.Name, "CalendarTimeline.Host", StringComparison.Ordinal)
                 || directory.Parent is null)
@@ -69,18 +112,18 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
             }
 
             var hostBinDirectory = Path.Combine(directory.FullName, "bin");
-            var relativeOutputDirectory = Path.GetRelativePath(hostBinDirectory, AppContext.BaseDirectory);
+            var relativeOutputDirectory = Path.GetRelativePath(hostBinDirectory, hostBaseDirectory);
             if (relativeOutputDirectory.StartsWith("..", StringComparison.Ordinal))
             {
                 break;
             }
 
-            var workerPath = Path.Combine(
+            var workerOutputDirectory = Path.Combine(
                 directory.Parent.FullName,
                 "CalendarTimeline.Worker",
                 "bin",
-                relativeOutputDirectory,
-                workerFileName);
+                relativeOutputDirectory);
+            var workerPath = FindWorkerArtifactPath(workerOutputDirectory);
             if (File.Exists(workerPath))
             {
                 return workerPath;
@@ -88,5 +131,26 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
         }
 
         return directPath;
+    }
+
+    private static string FindWorkerArtifactPath(string directory)
+    {
+        foreach (var fileName in GetWorkerArtifactNames())
+        {
+            var path = Path.Combine(directory, fileName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return Path.Combine(directory, GetWorkerArtifactNames()[0]);
+    }
+
+    private static string[] GetWorkerArtifactNames()
+    {
+        return OperatingSystem.IsWindows()
+            ? ["CalendarTimeline.Worker.exe", "CalendarTimeline.Worker.dll"]
+            : ["CalendarTimeline.Worker", "CalendarTimeline.Worker.dll"];
     }
 }
