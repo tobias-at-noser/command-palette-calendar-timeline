@@ -63,6 +63,21 @@ public sealed class CalendarTimelineHostServiceTests
         Assert.Equal(snapshot, Assert.IsType<SnapshotResponse>(cachedResponse).Snapshot);
     }
 
+    [Fact]
+    public async Task RefreshSnapshotRequestPropagatesSourceCancellationAndPreservesCachedSnapshot()
+    {
+        var snapshot = CreateSnapshot();
+        var cache = new HostSnapshotCache();
+        cache.Update(snapshot, "ok");
+        var service = new CalendarTimelineHostService(cache, new SourceCancellingHostSnapshotSource());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.HandleAsync(new RefreshSnapshotRequest(), CancellationToken.None));
+        var cachedResponse = await service.HandleAsync(new GetSnapshotRequest(), CancellationToken.None);
+
+        Assert.Equal(snapshot, Assert.IsType<SnapshotResponse>(cachedResponse).Snapshot);
+    }
+
     private static CalendarSnapshot CreateSnapshot()
     {
         var now = new DateTimeOffset(2026, 7, 10, 12, 0, 0, TimeSpan.Zero);
@@ -108,6 +123,14 @@ public sealed class CalendarTimelineHostServiceTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             return Task.FromCanceled<CalendarSnapshot>(cancellationToken);
+        }
+    }
+
+    private sealed class SourceCancellingHostSnapshotSource : IHostSnapshotSource
+    {
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromException<CalendarSnapshot>(new OperationCanceledException());
         }
     }
 }

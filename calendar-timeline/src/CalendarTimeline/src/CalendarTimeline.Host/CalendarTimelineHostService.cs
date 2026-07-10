@@ -32,7 +32,7 @@ public sealed class CalendarTimelineHostService
             cache.Update(snapshot, "ok");
             return cache.GetSnapshotResponse();
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             throw;
         }
