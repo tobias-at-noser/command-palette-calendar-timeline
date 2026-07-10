@@ -130,6 +130,39 @@ public sealed class WorkerHostSnapshotSourceTests
         }
     }
 
+    [Fact]
+    public async Task HostBuildCopiesWorkerArtifactToItsOutput()
+    {
+        var hostProjectPath = ResolveProjectPath("CalendarTimeline.Host");
+        var outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{hostProjectPath}\" --no-restore -o \"{outputDirectory}\"",
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            });
+            Assert.NotNull(process);
+
+            await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+
+            Assert.True(process.ExitCode == 0, error);
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
+    }
+
     private static async Task<string> CreateExecutableWorkerAsync(string command)
     {
         if (!OperatingSystem.IsLinux())
@@ -157,6 +190,20 @@ public sealed class WorkerHostSnapshotSourceTests
             modifiers: null);
         Assert.NotNull(method);
         return Assert.IsType<string>(method.Invoke(null, [hostBaseDirectory]));
+    }
+
+    private static string ResolveProjectPath(string projectName)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var projectPath = Path.Combine(directory.FullName, "src", projectName, $"{projectName}.csproj");
+            if (File.Exists(projectPath))
+            {
+                return projectPath;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not locate {projectName}.csproj.");
     }
 
     private static async Task WaitForFileAsync(string path)

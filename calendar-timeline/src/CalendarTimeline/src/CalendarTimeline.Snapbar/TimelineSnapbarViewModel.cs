@@ -28,7 +28,7 @@ public sealed class PipeSnapbarSnapshotClient : ISnapbarSnapshotClient
 
     public async Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
     {
-        return await pipeClient.SendAsync(new GetSnapshotRequest(), cancellationToken) switch
+        return await pipeClient.SendAsync(new RefreshSnapshotRequest(), cancellationToken) switch
         {
             SnapshotResponse response => response.Snapshot,
             ErrorResponse error => throw new InvalidOperationException(error.Message),

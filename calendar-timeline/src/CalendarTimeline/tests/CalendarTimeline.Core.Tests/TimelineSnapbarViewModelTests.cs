@@ -1,4 +1,5 @@
 using CalendarTimeline.Core;
+using CalendarTimeline.Ipc;
 using CalendarTimeline.Snapbar;
 using Xunit;
 
@@ -94,6 +95,46 @@ public sealed class TimelineSnapbarViewModelTests
             "Title",
             "WidthRatio",
         ], propertyNames);
+    }
+
+    [Fact]
+    public async Task PipeSnapshotClientRequestsRefreshBeforeLoadingTheSnapbarSnapshot()
+    {
+        var pipeName = $"calendar-timeline-test-{Guid.NewGuid():N}";
+        var snapshot = CreateSnapshot();
+        var server = new CalendarTimelinePipeServer(pipeName);
+        using var cancellationSource = new CancellationTokenSource();
+        CalendarTimelineRequest? receivedRequest = null;
+        var serverTask = server.RunAsync(
+            (request, _) =>
+            {
+                receivedRequest = request;
+                return Task.FromResult<CalendarTimelineResponse>(new SnapshotResponse(snapshot));
+            },
+            cancellationSource.Token);
+
+        try
+        {
+            var client = new PipeSnapbarSnapshotClient(new CalendarTimelinePipeClient(pipeName));
+
+            var loadedSnapshot = await client.LoadSnapshotAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(snapshot.GeneratedAt, loadedSnapshot.GeneratedAt);
+            Assert.Equal(snapshot.WindowStart, loadedSnapshot.WindowStart);
+            Assert.Equal(snapshot.WindowEnd, loadedSnapshot.WindowEnd);
+            Assert.IsType<RefreshSnapshotRequest>(receivedRequest);
+        }
+        finally
+        {
+            cancellationSource.Cancel();
+            await serverTask;
+        }
+    }
+
+    private static CalendarSnapshot CreateSnapshot()
+    {
+        var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
+        return new CalendarSnapshot(now, now.AddMinutes(-30), now.AddHours(4), [], null);
     }
 
     private sealed class StubSnapbarSnapshotClient(CalendarSnapshot snapshot) : ISnapbarSnapshotClient

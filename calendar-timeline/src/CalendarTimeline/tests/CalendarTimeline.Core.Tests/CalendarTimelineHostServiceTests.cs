@@ -78,6 +78,27 @@ public sealed class CalendarTimelineHostServiceTests
         Assert.Equal(snapshot, Assert.IsType<SnapshotResponse>(cachedResponse).Snapshot);
     }
 
+    [Fact]
+    public async Task ConcurrentRefreshesDoNotAllowAnOlderFailureToClearANewerSnapshot()
+    {
+        var newerSnapshot = CreateSnapshot() with { StatusMessage = "newer" };
+        var source = new BlockingThenSuccessfulHostSnapshotSource(newerSnapshot);
+        var cache = new HostSnapshotCache();
+        var service = new CalendarTimelineHostService(cache, source);
+
+        var firstRefresh = service.HandleAsync(new RefreshSnapshotRequest(), TestContext.Current.CancellationToken);
+        await source.FirstCallStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        var secondRefresh = service.HandleAsync(new RefreshSnapshotRequest(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, source.CallCount);
+        source.FailFirstCall();
+
+        Assert.Equal("Kalenderdaten nicht verfügbar", Assert.IsType<ErrorResponse>(await firstRefresh).Message);
+        Assert.Equal(newerSnapshot, Assert.IsType<SnapshotResponse>(await secondRefresh).Snapshot);
+        Assert.Equal(newerSnapshot, Assert.IsType<SnapshotResponse>(cache.GetSnapshotResponse()).Snapshot);
+    }
+
     private static CalendarSnapshot CreateSnapshot()
     {
         var now = new DateTimeOffset(2026, 7, 10, 12, 0, 0, TimeSpan.Zero);
@@ -131,6 +152,32 @@ public sealed class CalendarTimelineHostServiceTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             return Task.FromException<CalendarSnapshot>(new OperationCanceledException());
+        }
+    }
+
+    private sealed class BlockingThenSuccessfulHostSnapshotSource(CalendarSnapshot newerSnapshot) : IHostSnapshotSource
+    {
+        private readonly TaskCompletionSource<CalendarSnapshot> firstCall = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource FirstCallStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int CallCount { get; private set; }
+
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            CallCount++;
+            if (CallCount == 1)
+            {
+                FirstCallStarted.SetResult();
+                return firstCall.Task;
+            }
+
+            return Task.FromResult(newerSnapshot);
+        }
+
+        public void FailFirstCall()
+        {
+            firstCall.SetException(new InvalidOperationException());
         }
     }
 }

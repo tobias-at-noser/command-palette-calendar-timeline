@@ -10,9 +10,19 @@
     <UseAppHost Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseAppHost>
     <UseAppHost Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">false</UseAppHost>
     <UseWindowsForms Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseWindowsForms>
+    <WorkerOutputDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\bin\$(Configuration)\$(TargetFramework)\</WorkerOutputDirectory>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
     <ProjectReference Include="..\CalendarTimeline.Ipc\CalendarTimeline.Ipc.csproj" />
+    <ProjectReference Include="..\CalendarTimeline.Worker\CalendarTimeline.Worker.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  <Target Name="CopyWorkerArtifactsToHostOutput" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+    <ItemGroup>
+      <WorkerArtifact Include="$(WorkerOutputDirectory)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WorkerArtifact)"
+          DestinationFiles="@(WorkerArtifact->'$(TargetDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

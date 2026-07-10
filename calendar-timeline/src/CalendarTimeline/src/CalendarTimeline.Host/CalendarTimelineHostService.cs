@@ -6,6 +6,7 @@ public sealed class CalendarTimelineHostService
 {
     private readonly HostSnapshotCache cache;
     private readonly IHostSnapshotSource snapshotSource;
+    private readonly SemaphoreSlim refreshGate = new(1, 1);
 
     public CalendarTimelineHostService(HostSnapshotCache cache, IHostSnapshotSource snapshotSource)
     {
@@ -26,6 +27,7 @@ public sealed class CalendarTimelineHostService
 
     private async Task<CalendarTimelineResponse> RefreshAsync(CancellationToken cancellationToken)
     {
+        await refreshGate.WaitAsync(cancellationToken);
         try
         {
             var snapshot = await snapshotSource.LoadSnapshotAsync(cancellationToken);
@@ -40,6 +42,10 @@ public sealed class CalendarTimelineHostService
         {
             cache.MarkUnavailable();
             return cache.GetSnapshotResponse();
+        }
+        finally
+        {
+            refreshGate.Release();
         }
     }
 }
