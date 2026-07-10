@@ -46,6 +46,27 @@ public sealed class Task7ReviewFixTests
         Assert.True(IndexOf(source, "requestShutdown();") < IndexOf(source, "ExitThread();"));
     }
 
+    [Fact]
+    public void ResolveTrayApplicationContextPathFindsSourceWithoutRuntimeIdentifierDirectory()
+    {
+        var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var testAssemblyDirectory = Path.Combine(rootDirectory, "tests", "CalendarTimeline.Core.Tests", "bin", "Debug", "net10.0");
+        var expectedPath = Path.Combine(rootDirectory, "src", "CalendarTimeline.Host", "TrayApplicationContext.cs");
+
+        try
+        {
+            Directory.CreateDirectory(testAssemblyDirectory);
+            Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
+            File.WriteAllText(expectedPath, string.Empty);
+
+            Assert.Equal(expectedPath, ResolveTrayApplicationContextPath(testAssemblyDirectory));
+        }
+        finally
+        {
+            Directory.Delete(rootDirectory, recursive: true);
+        }
+    }
+
     private static int IndexOf(string source, string value)
     {
         var index = source.IndexOf(value, StringComparison.Ordinal);
@@ -53,13 +74,26 @@ public sealed class Task7ReviewFixTests
         return index;
     }
 
-    private static string ResolveTrayApplicationContextPath()
+    private static string ResolveTrayApplicationContextPath(string? testAssemblyDirectory = null)
     {
-        var testAssemblyDirectory = AppContext.BaseDirectory;
-        var configurationDirectory = Directory.GetParent(testAssemblyDirectory)?.Parent;
-        var tfmDirectory = configurationDirectory?.Parent;
-        var testsProjectDirectory = tfmDirectory?.Parent?.Parent?.Parent;
-        Assert.NotNull(testsProjectDirectory);
-        return Path.Combine(testsProjectDirectory!.FullName, "..", "src", "CalendarTimeline.Host", "TrayApplicationContext.cs");
+        var directory = new DirectoryInfo(testAssemblyDirectory ?? AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "src",
+                "CalendarTimeline.Host",
+                "TrayApplicationContext.cs");
+
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException("Could not locate TrayApplicationContext.cs.");
     }
 }
