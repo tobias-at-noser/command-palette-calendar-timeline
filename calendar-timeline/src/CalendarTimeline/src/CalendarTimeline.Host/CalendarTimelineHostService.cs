@@ -26,7 +26,7 @@ public sealed class CalendarTimelineHostService
 
     private async Task<CalendarTimelineResponse> RefreshAsync(CancellationToken cancellationToken)
     {
-        var snapshot = await snapshotSource.LoadSnapshotAsync(DateTimeOffset.Now, cancellationToken);
+        var snapshot = await snapshotSource.LoadSnapshotAsync(cancellationToken);
         cache.Update(snapshot, "ok");
         return cache.GetSnapshotResponse();
     }

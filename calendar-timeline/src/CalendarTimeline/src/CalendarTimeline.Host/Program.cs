@@ -12,7 +12,7 @@ public static class Program
 
         if (args.Contains("--fake-once", StringComparer.Ordinal))
         {
-            var snapshot = await snapshotSource.LoadSnapshotAsync(DateTimeOffset.Now, CancellationToken.None);
+            var snapshot = await snapshotSource.LoadSnapshotAsync(CancellationToken.None);
             Console.WriteLine(CalendarSnapshotJson.Serialize(snapshot));
             return 0;
         }

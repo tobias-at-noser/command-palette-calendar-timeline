@@ -2,10 +2,11 @@ using CalendarTimeline.Core;
 
 namespace CalendarTimeline.Host;
 
-public sealed class FakeHostSnapshotSource
+public sealed class FakeHostSnapshotSource : IHostSnapshotSource
 {
-    public Task<CalendarSnapshot> LoadSnapshotAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
     {
+        var now = DateTimeOffset.Now;
         var window = CalendarWindow.Create(now);
         var appointments = new[]
         {
