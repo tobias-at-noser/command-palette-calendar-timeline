@@ -7,10 +7,17 @@ namespace CalendarTimeline.Ipc;
 public sealed class CalendarTimelinePipeServer
 {
     private readonly string pipeName;
+    private readonly Action? requestReadStarted;
 
     public CalendarTimelinePipeServer(string? pipeName = null)
+        : this(pipeName, null)
+    {
+    }
+
+    internal CalendarTimelinePipeServer(string? pipeName, Action? requestReadStarted)
     {
         this.pipeName = string.IsNullOrWhiteSpace(pipeName) ? CalendarTimelinePipeNames.Default : pipeName;
+        this.requestReadStarted = requestReadStarted;
     }
 
     public async Task RunAsync(Func<CalendarTimelineRequest, CancellationToken, Task<CalendarTimelineResponse>> handler, CancellationToken cancellationToken)
@@ -34,7 +41,9 @@ public sealed class CalendarTimelinePipeServer
             string? requestLine;
             try
             {
-                requestLine = await reader.ReadLineAsync(cancellationToken);
+                var requestLineTask = reader.ReadLineAsync(cancellationToken).AsTask();
+                requestReadStarted?.Invoke();
+                requestLine = await requestLineTask;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -65,7 +74,7 @@ public sealed class CalendarTimelinePipeServer
 
             try
             {
-                await writer.WriteLineAsync(responseJson);
+                await writer.WriteLineAsync(responseJson.AsMemory(), cancellationToken);
                 await writer.FlushAsync(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

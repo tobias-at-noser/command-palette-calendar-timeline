@@ -11,7 +11,8 @@ public sealed class CalendarTimelinePipeServerTests
     public async Task RunAsyncCompletesNormallyWhenShutdownCancelsAnIncompleteRequest()
     {
         var pipeName = $"calendar-timeline-test-{Guid.NewGuid():N}";
-        var server = new CalendarTimelinePipeServer(pipeName);
+        var readStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = new CalendarTimelinePipeServer(pipeName, readStarted.SetResult);
         using var cancellationSource = new CancellationTokenSource();
         var serverTask = server.RunAsync(
             (_, _) => Task.FromResult<CalendarTimelineResponse>(new StatusResponse("ok")),
@@ -21,7 +22,7 @@ public sealed class CalendarTimelinePipeServerTests
         await client.ConnectAsync(TestContext.Current.CancellationToken);
         await client.WriteAsync(Encoding.UTF8.GetBytes("{"), TestContext.Current.CancellationToken);
         await client.FlushAsync(TestContext.Current.CancellationToken);
-        await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+        await readStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
 
         cancellationSource.Cancel();
 
