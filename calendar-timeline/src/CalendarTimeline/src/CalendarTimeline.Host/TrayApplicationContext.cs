@@ -66,7 +66,16 @@ public sealed class TrayApplicationContext : ApplicationContext
         autostartMenuItem = new ToolStripMenuItem();
         autostartMenuItem.Click += async (_, _) => await ToggleAutostartAsync();
         menu.Items.Add(autostartMenuItem);
-        menu.Items.Add("Jetzt aktualisieren", null, async (_, _) => await service.HandleAsync(new RefreshSnapshotRequest(), cancellationToken));
+        menu.Items.Add("Jetzt aktualisieren", null, async (_, _) =>
+        {
+            try
+            {
+                await service.HandleAsync(new RefreshSnapshotRequest(), cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+        });
         menu.Items.Add("Beenden", null, (_, _) =>
         {
             requestShutdown();

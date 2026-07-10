@@ -47,6 +47,16 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void HostStartupAndTrayRefreshHandleExpectedShutdownCancellation()
+    {
+        var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
+        var traySource = File.ReadAllText(ResolveHostSourcePath("TrayApplicationContext.cs"));
+
+        Assert.Contains("catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)", programSource);
+        Assert.Contains("catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)", traySource);
+    }
+
+    [Fact]
     public void ResolveTrayApplicationContextPathFindsSourceWithoutRuntimeIdentifierDirectory()
     {
         var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -76,6 +86,11 @@ public sealed class Task7ReviewFixTests
 
     private static string ResolveTrayApplicationContextPath(string? testAssemblyDirectory = null)
     {
+        return ResolveHostSourcePath("TrayApplicationContext.cs", testAssemblyDirectory);
+    }
+
+    private static string ResolveHostSourcePath(string fileName, string? testAssemblyDirectory = null)
+    {
         var directory = new DirectoryInfo(testAssemblyDirectory ?? AppContext.BaseDirectory);
 
         while (directory is not null)
@@ -84,7 +99,7 @@ public sealed class Task7ReviewFixTests
                 directory.FullName,
                 "src",
                 "CalendarTimeline.Host",
-                "TrayApplicationContext.cs");
+                fileName);
 
             if (File.Exists(candidate))
             {

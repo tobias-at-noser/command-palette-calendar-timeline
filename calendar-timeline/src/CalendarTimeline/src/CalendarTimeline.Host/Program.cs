@@ -26,7 +26,14 @@ public static class Program
             cancellationSource.Cancel();
         };
 
-        await service.HandleAsync(new RefreshSnapshotRequest(), cancellationSource.Token);
+        try
+        {
+            await service.HandleAsync(new RefreshSnapshotRequest(), cancellationSource.Token);
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            return 0;
+        }
 
         if (OperatingSystem.IsWindows())
         {
