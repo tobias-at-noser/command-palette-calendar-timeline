@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;
     private const int WmNcHitTest = 0x0084;
+    private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
     private const int WmNcMouseLeave = 0x02A2;
     private const int HtLeft = 10;
@@ -145,6 +146,13 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (message == WmSysCommand
+            && SnapbarWindowInteraction.ShouldBlockSystemCommand((int)wParam.ToInt64()))
+        {
+            handled = true;
+            return IntPtr.Zero;
+        }
+
         if (message == WmNcMouseMove)
         {
             ShowHoverSurface();

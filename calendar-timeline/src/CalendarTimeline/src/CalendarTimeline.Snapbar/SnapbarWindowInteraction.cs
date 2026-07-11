@@ -16,6 +16,9 @@ public enum SnapbarResizeDirection
 public static class SnapbarWindowInteraction
 {
     public const double DefaultResizeBorder = 18;
+    private const int SystemCommandMask = 0xFFF0;
+    private const int SystemCommandMinimize = 0xF020;
+    private const int SystemCommandMaximize = 0xF030;
 
     public static SnapbarResizeDirection GetResizeDirection(
         double x,
@@ -46,5 +49,10 @@ public static class SnapbarWindowInteraction
     public static bool IsWithinBounds(int x, int y, int left, int top, int right, int bottom)
     {
         return x >= left && x < right && y >= top && y < bottom;
+    }
+
+    public static bool ShouldBlockSystemCommand(int command)
+    {
+        return (command & SystemCommandMask) is SystemCommandMinimize or SystemCommandMaximize;
     }
 }

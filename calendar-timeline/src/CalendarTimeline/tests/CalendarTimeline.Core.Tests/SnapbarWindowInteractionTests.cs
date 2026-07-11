@@ -44,6 +44,16 @@ public sealed class SnapbarWindowInteractionTests
         Assert.Equal(expected, SnapbarWindowInteraction.IsWithinBounds(x, y, 100, 50, 500, 98));
     }
 
+    [Theory]
+    [InlineData(0xF020, true)]
+    [InlineData(0xF021, true)]
+    [InlineData(0xF030, true)]
+    [InlineData(0xF060, false)]
+    public void ShouldBlockSystemCommandRejectsMinimizeAndMaximize(int command, bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.ShouldBlockSystemCommand(command));
+    }
+
     [Fact]
     public void CanBeginDragRejectsAppointmentTargets()
     {
