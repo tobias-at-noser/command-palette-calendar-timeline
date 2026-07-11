@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +18,8 @@ public partial class MainWindow : Window
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;
     private const int WmNcHitTest = 0x0084;
+    private const int WmNcMouseMove = 0x00A0;
+    private const int WmNcMouseLeave = 0x02A2;
     private const int HtLeft = 10;
     private const int HtTopLeft = 13;
     private const int HtTop = 12;
@@ -25,12 +28,48 @@ public partial class MainWindow : Window
     private const int HtBottomRight = 17;
     private const int HtBottom = 15;
     private const int HtBottomLeft = 16;
+    private const uint TmeLeave = 0x00000002;
+    private const uint TmeNonClient = 0x00000010;
     private readonly TimelineSnapbarViewModel viewModel;
     private readonly SnapbarWindowSettingsStore settingsStore = new();
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
     private bool refreshInProgress;
     private double minimumWindowHeight;
     private HwndSource? hwndSource;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TrackMouseEventData
+    {
+        public uint Size;
+        public uint Flags;
+        public IntPtr WindowHandle;
+        public uint HoverTime;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr windowHandle, out NativeRect rectangle);
+
+    [DllImport("user32.dll")]
+    private static extern bool TrackMouseEvent(ref TrackMouseEventData eventData);
 
     public MainWindow()
         : this(new TimelineSnapbarViewModel(new PipeSnapbarSnapshotClient()))
@@ -106,6 +145,19 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (message == WmNcMouseMove)
+        {
+            ShowHoverSurface();
+            TrackNonClientMouseLeave(hwnd);
+            return IntPtr.Zero;
+        }
+
+        if (message == WmNcMouseLeave)
+        {
+            HideHoverSurface();
+            return IntPtr.Zero;
+        }
+
         if (message != WmNcHitTest)
         {
             return IntPtr.Zero;
@@ -125,6 +177,7 @@ public partial class MainWindow : Window
             return IntPtr.Zero;
         }
 
+        ShowHoverSurface();
         handled = true;
         return new IntPtr(hitTest);
     }
@@ -242,12 +295,44 @@ public partial class MainWindow : Window
 
     private void OnRootMouseEnter(object sender, MouseEventArgs e)
     {
-        HoverSurface.Opacity = 1;
+        ShowHoverSurface();
     }
 
     private void OnRootMouseLeave(object sender, MouseEventArgs e)
     {
-        HoverSurface.Opacity = 0;
+        if (!IsCursorWithinWindow())
+        {
+            HideHoverSurface();
+        }
+    }
+
+    private void ShowHoverSurface() => HoverSurface.Opacity = 1;
+
+    private void HideHoverSurface() => HoverSurface.Opacity = 0;
+
+    private bool IsCursorWithinWindow()
+    {
+        return hwndSource is not null
+            && GetCursorPos(out var cursor)
+            && GetWindowRect(hwndSource.Handle, out var rectangle)
+            && SnapbarWindowInteraction.IsWithinBounds(
+                cursor.X,
+                cursor.Y,
+                rectangle.Left,
+                rectangle.Top,
+                rectangle.Right,
+                rectangle.Bottom);
+    }
+
+    private static void TrackNonClientMouseLeave(IntPtr windowHandle)
+    {
+        var eventData = new TrackMouseEventData
+        {
+            Size = (uint)Marshal.SizeOf<TrackMouseEventData>(),
+            Flags = TmeLeave | TmeNonClient,
+            WindowHandle = windowHandle,
+        };
+        TrackMouseEvent(ref eventData);
     }
 
     private void OnRootPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

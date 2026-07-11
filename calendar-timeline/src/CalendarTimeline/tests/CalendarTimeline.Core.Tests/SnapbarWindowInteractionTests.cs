@@ -33,6 +33,17 @@ public sealed class SnapbarWindowInteractionTests
                 SnapbarWindowInteraction.DefaultResizeBorder));
     }
 
+    [Theory]
+    [InlineData(100, 50, true)]
+    [InlineData(499, 97, true)]
+    [InlineData(99, 50, false)]
+    [InlineData(500, 50, false)]
+    [InlineData(100, 98, false)]
+    public void IsWithinBoundsUsesTheNativeWindowRectangle(int x, int y, bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.IsWithinBounds(x, y, 100, 50, 500, 98));
+    }
+
     [Fact]
     public void CanBeginDragRejectsAppointmentTargets()
     {

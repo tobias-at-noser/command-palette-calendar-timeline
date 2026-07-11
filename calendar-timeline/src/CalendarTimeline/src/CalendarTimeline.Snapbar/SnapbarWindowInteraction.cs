@@ -42,4 +42,9 @@ public static class SnapbarWindowInteraction
     }
 
     public static bool CanBeginDrag(bool isAppointmentTarget) => !isAppointmentTarget;
+
+    public static bool IsWithinBounds(int x, int y, int left, int top, int right, int bottom)
+    {
+        return x >= left && x < right && y >= top && y < bottom;
+    }
 }
