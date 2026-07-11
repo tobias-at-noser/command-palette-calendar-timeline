@@ -113,6 +113,16 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void GenericWindowsFallbackAlsoStopsWaitingForThePipeServerOnShutdown()
+    {
+        var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
+
+        Assert.Contains(
+            "#else\n        var serverTask = server.RunAsync(service.HandleAsync, cancellationToken);\n        await AwaitServerShutdownAsync(serverTask, cancellationToken);\n#endif",
+            programSource);
+    }
+
+    [Fact]
     public void ResolveTrayApplicationContextPathFindsSourceWithoutRuntimeIdentifierDirectory()
     {
         var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

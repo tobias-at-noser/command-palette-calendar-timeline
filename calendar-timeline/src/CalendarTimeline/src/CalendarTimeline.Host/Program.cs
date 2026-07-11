@@ -62,7 +62,8 @@ public static class Program
 
         await AwaitServerShutdownAsync(serverTask, cancellationToken);
 #else
-        await server.RunAsync(service.HandleAsync, cancellationToken);
+        var serverTask = server.RunAsync(service.HandleAsync, cancellationToken);
+        await AwaitServerShutdownAsync(serverTask, cancellationToken);
 #endif
     }
 

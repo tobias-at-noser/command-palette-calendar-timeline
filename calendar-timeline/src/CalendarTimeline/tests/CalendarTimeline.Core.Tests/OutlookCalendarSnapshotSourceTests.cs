@@ -37,6 +37,17 @@ public sealed class OutlookCalendarSnapshotSourceTests
     }
 
     [Fact]
+    public void HostProjectPrefersWindowsTargetForDefaultWindowsRun()
+    {
+        var project = XDocument.Load(HostFile("CalendarTimeline.Host.csproj"));
+        var targetFrameworks = project.Descendants("TargetFrameworks")
+            .Single(element => element.Attribute("Condition")?.Value.StartsWith("'$(OS)' == 'Windows_NT'", StringComparison.Ordinal) == true)
+            .Value;
+
+        Assert.Equal("net10.0-windows10.0.19041.0;net10.0", targetFrameworks);
+    }
+
+    [Fact]
     public void OutlookSourceUsesOutlookComApplicationOnWindows()
     {
         var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));
