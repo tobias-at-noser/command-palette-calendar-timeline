@@ -18,14 +18,14 @@
         PreviewMouseMove="OnRootPreviewMouseMove"
         PreviewMouseLeftButtonDown="OnRootPreviewMouseLeftButtonDown">
     <Border x:Name="HoverSurface"
-            Margin="12,6"
+            Margin="12,0,12,6"
             Background="#55FFFFFF"
             BorderBrush="#CC6A8296"
             BorderThickness="1"
             CornerRadius="3"
             IsHitTestVisible="False"
             Opacity="0" />
-    <Grid Margin="12,6">
+    <Grid Margin="12,0,12,6">
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />

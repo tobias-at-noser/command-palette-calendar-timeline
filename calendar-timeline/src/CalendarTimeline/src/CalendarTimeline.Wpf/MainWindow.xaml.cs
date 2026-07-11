@@ -13,7 +13,7 @@ namespace CalendarTimeline.Wpf;
 
 public partial class MainWindow : Window
 {
-    private const double GridVerticalMargin = 12;
+    private const double GridVerticalMargin = 6;
     private const double StatusRowHeight = 16;
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;

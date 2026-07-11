@@ -31,15 +31,11 @@ public static class SnapbarWindowInteraction
     {
         var left = x <= resizeBorder;
         var right = x >= width - resizeBorder;
-        var top = y <= resizeBorder;
         var bottom = y >= height - resizeBorder;
 
-        if (top && left) return SnapbarResizeDirection.TopLeft;
-        if (top && right) return SnapbarResizeDirection.TopRight;
         if (bottom && right) return SnapbarResizeDirection.BottomRight;
         if (bottom && left) return SnapbarResizeDirection.BottomLeft;
         if (left) return SnapbarResizeDirection.Left;
-        if (top) return SnapbarResizeDirection.Top;
         if (right) return SnapbarResizeDirection.Right;
         if (bottom) return SnapbarResizeDirection.Bottom;
 

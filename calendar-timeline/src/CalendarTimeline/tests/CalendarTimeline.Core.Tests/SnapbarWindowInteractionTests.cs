@@ -6,16 +6,16 @@ namespace CalendarTimeline.Core.Tests;
 public sealed class SnapbarWindowInteractionTests
 {
     [Theory]
-    [InlineData(0, 0, SnapbarResizeDirection.TopLeft)]
-    [InlineData(100, 0, SnapbarResizeDirection.Top)]
-    [InlineData(199, 0, SnapbarResizeDirection.TopRight)]
+    [InlineData(0, 0, SnapbarResizeDirection.Left)]
+    [InlineData(100, 0, SnapbarResizeDirection.None)]
+    [InlineData(199, 0, SnapbarResizeDirection.Right)]
     [InlineData(199, 50, SnapbarResizeDirection.Right)]
     [InlineData(199, 99, SnapbarResizeDirection.BottomRight)]
     [InlineData(100, 99, SnapbarResizeDirection.Bottom)]
     [InlineData(0, 99, SnapbarResizeDirection.BottomLeft)]
     [InlineData(0, 50, SnapbarResizeDirection.Left)]
     [InlineData(100, 50, SnapbarResizeDirection.None)]
-    public void GetResizeDirectionMapsEveryEdgeAndCorner(double x, double y, SnapbarResizeDirection expected)
+    public void GetResizeDirectionLeavesTheTopEdgeOutOfTheResizeFrame(double x, double y, SnapbarResizeDirection expected)
     {
         Assert.Equal(expected, SnapbarWindowInteraction.GetResizeDirection(x, y, 200, 100, 8));
     }
