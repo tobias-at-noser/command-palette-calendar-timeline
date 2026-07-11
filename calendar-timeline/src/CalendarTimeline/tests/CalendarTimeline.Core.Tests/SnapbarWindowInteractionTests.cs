@@ -66,6 +66,22 @@ public sealed class SnapbarWindowInteractionTests
         Assert.Equal(expected, SnapbarWindowInteraction.ShouldUseMoveCursor(isAppointmentTarget, resizeDirection));
     }
 
+    [Theory]
+    [InlineData(SnapbarResizeDirection.None, true)]
+    [InlineData(SnapbarResizeDirection.Top, false)]
+    public void ShouldUseClientHitTestOnlyOutsideResizeZones(SnapbarResizeDirection resizeDirection, bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.ShouldUseClientHitTest(resizeDirection));
+    }
+
+    [Fact]
+    public void RemoveSystemButtonStylesClearsMinimizeAndMaximizeBoxes()
+    {
+        const long style = 0x00010000 | 0x00020000 | 0x00040000;
+
+        Assert.Equal(0x00040000, SnapbarWindowInteraction.RemoveSystemButtonStyles(style));
+    }
+
     [Fact]
     public void CanBeginDragRejectsAppointmentTargets()
     {

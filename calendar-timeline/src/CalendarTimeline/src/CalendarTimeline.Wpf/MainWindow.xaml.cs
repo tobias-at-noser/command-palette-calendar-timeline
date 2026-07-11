@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
     private const int WmNcMouseLeave = 0x02A2;
+    private const int GwlStyle = -16;
+    private const int HtClient = 1;
     private const int HtLeft = 10;
     private const int HtTopLeft = 13;
     private const int HtTop = 12;
@@ -31,6 +33,10 @@ public partial class MainWindow : Window
     private const int HtBottomLeft = 16;
     private const uint TmeLeave = 0x00000002;
     private const uint TmeNonClient = 0x00000010;
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpFrameChanged = 0x0020;
     private readonly TimelineSnapbarViewModel viewModel;
     private readonly SnapbarWindowSettingsStore settingsStore = new();
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
@@ -71,6 +77,22 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool TrackMouseEvent(ref TrackMouseEventData eventData);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern IntPtr GetWindowLongPtr(IntPtr windowHandle, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr windowHandle, int index, IntPtr value);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(
+        IntPtr windowHandle,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
 
     public MainWindow()
         : this(new TimelineSnapbarViewModel(new PipeSnapbarSnapshotClient()))
@@ -141,6 +163,11 @@ public partial class MainWindow : Window
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
         hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+        if (hwndSource is not null)
+        {
+            RemoveSystemButtonStyles(hwndSource.Handle);
+        }
+
         hwndSource?.AddHook(WndProc);
     }
 
@@ -180,9 +207,11 @@ public partial class MainWindow : Window
             ActualHeight,
             SnapbarWindowInteraction.DefaultResizeBorder);
         var hitTest = GetHitTestResult(direction);
-        if (hitTest == 0)
+        if (SnapbarWindowInteraction.ShouldUseClientHitTest(direction))
         {
-            return IntPtr.Zero;
+            ShowHoverSurface();
+            handled = true;
+            return new IntPtr(HtClient);
         }
 
         ShowHoverSurface();
@@ -204,6 +233,26 @@ public partial class MainWindow : Window
             SnapbarResizeDirection.BottomLeft => HtBottomLeft,
             _ => 0,
         };
+    }
+
+    private static void RemoveSystemButtonStyles(IntPtr windowHandle)
+    {
+        var style = GetWindowLongPtr(windowHandle, GwlStyle).ToInt64();
+        var updatedStyle = SnapbarWindowInteraction.RemoveSystemButtonStyles(style);
+        if (updatedStyle == style)
+        {
+            return;
+        }
+
+        SetWindowLongPtr(windowHandle, GwlStyle, new IntPtr(updatedStyle));
+        SetWindowPos(
+            windowHandle,
+            IntPtr.Zero,
+            0,
+            0,
+            0,
+            0,
+            SwpNoSize | SwpNoMove | SwpNoZOrder | SwpFrameChanged);
     }
 
     private async Task RefreshAsync()
