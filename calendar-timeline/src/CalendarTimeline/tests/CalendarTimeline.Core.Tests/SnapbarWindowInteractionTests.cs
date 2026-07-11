@@ -54,6 +54,18 @@ public sealed class SnapbarWindowInteractionTests
         Assert.Equal(expected, SnapbarWindowInteraction.ShouldBlockSystemCommand(command));
     }
 
+    [Theory]
+    [InlineData(false, SnapbarResizeDirection.None, true)]
+    [InlineData(true, SnapbarResizeDirection.None, false)]
+    [InlineData(false, SnapbarResizeDirection.Left, false)]
+    public void ShouldUseMoveCursorOnlyOnFreeNonResizeAreas(
+        bool isAppointmentTarget,
+        SnapbarResizeDirection resizeDirection,
+        bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.ShouldUseMoveCursor(isAppointmentTarget, resizeDirection));
+    }
+
     [Fact]
     public void CanBeginDragRejectsAppointmentTargets()
     {

@@ -15,11 +15,12 @@
           Background="#01000000"
         MouseEnter="OnRootMouseEnter"
         MouseLeave="OnRootMouseLeave"
+        PreviewMouseMove="OnRootPreviewMouseMove"
         PreviewMouseLeftButtonDown="OnRootPreviewMouseLeftButtonDown">
     <Border x:Name="HoverSurface"
             Margin="12,6"
             Background="#55FFFFFF"
-            BorderBrush="#BFFFFFFF"
+            BorderBrush="#CC6A8296"
             BorderThickness="1"
             CornerRadius="3"
             IsHitTestVisible="False"

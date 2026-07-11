@@ -308,6 +308,7 @@ public partial class MainWindow : Window
 
     private void OnRootMouseLeave(object sender, MouseEventArgs e)
     {
+        Cursor = null;
         if (!IsCursorWithinWindow())
         {
             HideHoverSurface();
@@ -343,23 +344,42 @@ public partial class MainWindow : Window
         TrackMouseEvent(ref eventData);
     }
 
+    private void OnRootPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        var position = e.GetPosition(this);
+        var resizeDirection = SnapbarWindowInteraction.GetResizeDirection(
+            position.X,
+            position.Y,
+            ActualWidth,
+            ActualHeight,
+            SnapbarWindowInteraction.DefaultResizeBorder);
+        Cursor = SnapbarWindowInteraction.ShouldUseMoveCursor(
+            IsAppointmentTarget(e.OriginalSource as DependencyObject),
+            resizeDirection)
+            ? Cursors.SizeAll
+            : null;
+    }
+
     private void OnRootPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        var isAppointmentTarget = false;
-        for (var current = e.OriginalSource as DependencyObject; current is not null; current = VisualTreeHelper.GetParent(current))
-        {
-            if (current is Button)
-            {
-                isAppointmentTarget = true;
-                break;
-            }
-        }
-
-        if (SnapbarWindowInteraction.CanBeginDrag(isAppointmentTarget)
+        if (SnapbarWindowInteraction.CanBeginDrag(IsAppointmentTarget(e.OriginalSource as DependencyObject))
             && e.LeftButton == MouseButtonState.Pressed)
         {
             DragMove();
         }
+    }
+
+    private static bool IsAppointmentTarget(DependencyObject? source)
+    {
+        for (var current = source; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is Button)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Button CreateBlockButton(TimelineBlockViewModel block, double width)
