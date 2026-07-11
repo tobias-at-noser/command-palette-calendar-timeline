@@ -5,6 +5,11 @@ namespace CalendarTimeline.Host;
 
 public static class Program
 {
+    private static readonly bool diagnosticsEnabled = string.Equals(
+        Environment.GetEnvironmentVariable("CALENDAR_TIMELINE_DIAGNOSTICS"),
+        "1",
+        StringComparison.Ordinal);
+
     public static async Task<int> Main(string[] args)
     {
         var cache = new HostSnapshotCache();
@@ -23,6 +28,7 @@ public static class Program
         Console.CancelKeyPress += (_, eventArgs) =>
         {
             eventArgs.Cancel = true;
+            Log("Ctrl+C received; requesting shutdown.");
             cancellationSource.Cancel();
         };
 
@@ -53,10 +59,13 @@ public static class Program
             TaskScheduler.Default);
         try
         {
+            Log("Starting Windows message loop.");
             System.Windows.Forms.Application.Run(context);
+            Log("Windows message loop exited.");
         }
         finally
         {
+            Log("Cancelling Host services.");
             cancellationSource.Cancel();
         }
 
@@ -69,11 +78,17 @@ public static class Program
 
     private static async Task AwaitServerShutdownAsync(Task serverTask, CancellationToken cancellationToken)
     {
+        Log("Waiting for the pipe server to stop.");
         var cancellationTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
 
         if (await Task.WhenAny(serverTask, cancellationTask) == serverTask)
         {
+            Log("Pipe server stopped before shutdown was requested.");
             await serverTask;
+        }
+        else
+        {
+            Log("Shutdown was requested; no longer waiting for the pipe server.");
         }
     }
 
@@ -85,6 +100,14 @@ public static class Program
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+        }
+    }
+
+    private static void Log(string message)
+    {
+        if (diagnosticsEnabled)
+        {
+            Console.Error.WriteLine($"[CalendarTimeline.Host] {message}");
         }
     }
 }
