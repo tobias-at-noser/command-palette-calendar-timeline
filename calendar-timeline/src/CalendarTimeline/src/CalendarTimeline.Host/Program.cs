@@ -34,7 +34,7 @@ public static class Program
 
         var serverTask = server.RunAsync(service.HandleAsync, cancellationSource.Token);
         _ = RefreshInitialSnapshotAsync(service, cancellationSource.Token);
-        await serverTask;
+        await AwaitServerShutdownAsync(serverTask, cancellationSource.Token);
         return 0;
     }
 
@@ -60,10 +60,20 @@ public static class Program
             cancellationSource.Cancel();
         }
 
-        await serverTask;
+        await AwaitServerShutdownAsync(serverTask, cancellationToken);
 #else
         await server.RunAsync(service.HandleAsync, cancellationToken);
 #endif
+    }
+
+    private static async Task AwaitServerShutdownAsync(Task serverTask, CancellationToken cancellationToken)
+    {
+        var cancellationTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+
+        if (await Task.WhenAny(serverTask, cancellationTask) == serverTask)
+        {
+            await serverTask;
+        }
     }
 
     private static async Task RefreshInitialSnapshotAsync(CalendarTimelineHostService service, CancellationToken cancellationToken)

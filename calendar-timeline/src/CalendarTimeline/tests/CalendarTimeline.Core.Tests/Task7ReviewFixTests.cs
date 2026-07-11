@@ -94,6 +94,25 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public async Task HostShutdownDoesNotWaitForAnUnresponsivePipeServer()
+    {
+        var method = typeof(Program).GetMethod(
+            "AwaitServerShutdownAsync",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            types: [typeof(Task), typeof(CancellationToken)],
+            modifiers: null);
+        Assert.NotNull(method);
+
+        var serverTask = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+
+        var shutdownTask = Assert.IsAssignableFrom<Task>(method.Invoke(null, [serverTask.Task, cancellationSource.Token]));
+        await shutdownTask.WaitAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
     public void ResolveTrayApplicationContextPathFindsSourceWithoutRuntimeIdentifierDirectory()
     {
         var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
