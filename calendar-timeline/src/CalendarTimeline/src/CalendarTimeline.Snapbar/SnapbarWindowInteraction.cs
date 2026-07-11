@@ -15,6 +15,8 @@ public enum SnapbarResizeDirection
 
 public static class SnapbarWindowInteraction
 {
+    public const double DefaultResizeBorder = 14;
+
     public static SnapbarResizeDirection GetResizeDirection(
         double x,
         double y,

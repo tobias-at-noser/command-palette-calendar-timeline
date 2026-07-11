@@ -21,6 +21,19 @@ public sealed class SnapbarWindowInteractionTests
     }
 
     [Fact]
+    public void DefaultResizeBorderExtendsFurtherIntoTheOverlay()
+    {
+        Assert.Equal(
+            SnapbarResizeDirection.Right,
+            SnapbarWindowInteraction.GetResizeDirection(
+                187,
+                50,
+                200,
+                100,
+                SnapbarWindowInteraction.DefaultResizeBorder));
+    }
+
+    [Fact]
     public void CanBeginDragRejectsAppointmentTargets()
     {
         Assert.False(SnapbarWindowInteraction.CanBeginDrag(true));

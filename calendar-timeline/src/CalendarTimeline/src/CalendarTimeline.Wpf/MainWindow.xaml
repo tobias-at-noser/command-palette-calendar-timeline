@@ -11,20 +11,20 @@
           ShowInTaskbar="False"
           AllowsTransparency="True"
           Background="Transparent">
-  <Grid x:Name="RootGrid"
-        Margin="12,6"
-        Background="Transparent"
+   <Grid x:Name="RootGrid"
+         Background="Transparent"
         MouseEnter="OnRootMouseEnter"
         MouseLeave="OnRootMouseLeave"
         PreviewMouseLeftButtonDown="OnRootPreviewMouseLeftButtonDown">
     <Border x:Name="HoverSurface"
+            Margin="12,6"
             Background="#55FFFFFF"
             BorderBrush="#BFFFFFFF"
             BorderThickness="1"
             CornerRadius="3"
             IsHitTestVisible="False"
             Opacity="0" />
-    <Grid>
+    <Grid Margin="12,6">
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />

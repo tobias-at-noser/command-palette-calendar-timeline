@@ -16,7 +16,6 @@ public partial class MainWindow : Window
     private const double StatusRowHeight = 16;
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;
-    private const double ResizeBorder = 8;
     private const int WmNcHitTest = 0x0084;
     private const int HtLeft = 10;
     private const int HtTopLeft = 13;
@@ -119,7 +118,7 @@ public partial class MainWindow : Window
             localPoint.Y,
             ActualWidth,
             ActualHeight,
-            ResizeBorder);
+            SnapbarWindowInteraction.DefaultResizeBorder);
         var hitTest = GetHitTestResult(direction);
         if (hitTest == 0)
         {
