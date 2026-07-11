@@ -13,6 +13,11 @@ public static class TimelineSnapbarLayout
         return Math.Max(1, laneCount) * LanePitch + RailClearance;
     }
 
+    public static double GetWindowHeight(double currentHeight, double requiredHeight)
+    {
+        return Math.Max(currentHeight, requiredHeight);
+    }
+
     public static double GetBlockTop(int lane, int laneCount)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(laneCount, 1);

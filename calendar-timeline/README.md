@@ -10,7 +10,7 @@ PowerToys Command Palette calendar integration with a compact Dock agenda, a sep
 - `calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.Ipc`: Named Pipe IPC contracts, JSON serialization, pipe naming, client, and server helpers
 - `calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.Host`: long-lived tray/host process that acts as the single data hub, refreshes snapshot state, serves IPC requests, and manages snapbar visibility plus autostart
 - `calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.CommandPalette`: PowerToys Command Palette extension that connects to the Host over Named Pipes and renders a compact Dock agenda instead of a freely drawn timeline
-- `calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.Wpf`: always-on-top WPF timeline window snapped to the top edge of the primary display
+- `calendar-timeline/src/CalendarTimeline/src/CalendarTimeline.Wpf`: always-on-top WPF timeline window that starts at the top of the primary display and can be moved
 - `calendar-timeline/src/CalendarTimeline/tests/CalendarTimeline.Core.Tests`: xUnit coverage for shared Core logic, IPC-adjacent behavior, Host settings/cache behavior, Dock behavior, and snapbar view-model behavior
 - `calendar-timeline/docs/superpowers/specs`: design notes and approved specs
 - `calendar-timeline/docs/superpowers/plans`: implementation plan
@@ -43,9 +43,14 @@ The Dock is intentionally compact. It does not try to draw a custom graphical ti
 The graphical timeline lives in the WPF app, not in the Dock.
 
 - borderless always-on-top window
-- starts at the top edge of the primary screen
+- starts 400 px wide at the top of the primary display
+- can be moved by dragging free timeline space and resized from any edge or corner
+- preserves its size and position in `%LocalAppData%/CalendarTimeline/snapbar-window.json`
+- grows downward when additional timeline lanes are needed
 - renders timeline lanes and meeting blocks from shared Core projections
-- supports hover details and Teams click-throughs
+- shows a semi-transparent milky-white panel with a thin border on hover
+- renders a 2 px white now-line with a subtle shadow
+- retains Teams click-throughs on appointment blocks
 - is shown/hidden by the Host tray menu
 
 ## Settings

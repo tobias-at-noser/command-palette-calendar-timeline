@@ -1,6 +1,9 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CalendarTimeline.Snapbar;
@@ -13,9 +16,22 @@ public partial class MainWindow : Window
     private const double StatusRowHeight = 16;
     private const double TimelineWidthPadding = 24;
     private const double MinimumBlockWidth = 36;
+    private const double ResizeBorder = 8;
+    private const int WmNcHitTest = 0x0084;
+    private const int HtLeft = 10;
+    private const int HtTopLeft = 13;
+    private const int HtTop = 12;
+    private const int HtTopRight = 14;
+    private const int HtRight = 11;
+    private const int HtBottomRight = 17;
+    private const int HtBottom = 15;
+    private const int HtBottomLeft = 16;
     private readonly TimelineSnapbarViewModel viewModel;
+    private readonly SnapbarWindowSettingsStore settingsStore = new();
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
     private bool refreshInProgress;
+    private double minimumWindowHeight;
+    private HwndSource? hwndSource;
 
     public MainWindow()
         : this(new TimelineSnapbarViewModel(new PipeSnapbarSnapshotClient()))
@@ -30,14 +46,17 @@ public partial class MainWindow : Window
 
         Topmost = true;
         WindowStyle = WindowStyle.None;
-        ResizeMode = ResizeMode.NoResize;
+        ResizeMode = ResizeMode.CanResize;
+        Width = SnapbarWindowSettings.DefaultWidth;
         Left = 0;
         Top = 0;
-        Width = SystemParameters.PrimaryScreenWidth;
         UpdateWindowHeight();
+        RestoreWindowSettings();
 
         Loaded += OnLoaded;
         Closed += OnClosed;
+        SourceInitialized += OnSourceInitialized;
+        LocationChanged += OnLocationChanged;
         SizeChanged += OnSizeChanged;
         refreshTimer.Tick += OnRefreshTimerTick;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -70,8 +89,61 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        if (hwndSource is not null)
+        {
+            hwndSource.RemoveHook(WndProc);
+            hwndSource = null;
+        }
+
         refreshTimer.Stop();
         refreshTimer.Tick -= OnRefreshTimerTick;
+    }
+
+    private void OnSourceInitialized(object? sender, EventArgs e)
+    {
+        hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+        hwndSource?.AddHook(WndProc);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message != WmNcHitTest)
+        {
+            return IntPtr.Zero;
+        }
+
+        var screenPoint = new Point((short)(long)lParam, (short)((long)lParam >> 16));
+        var localPoint = PointFromScreen(screenPoint);
+        var direction = SnapbarWindowInteraction.GetResizeDirection(
+            localPoint.X,
+            localPoint.Y,
+            ActualWidth,
+            ActualHeight,
+            ResizeBorder);
+        var hitTest = GetHitTestResult(direction);
+        if (hitTest == 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        handled = true;
+        return new IntPtr(hitTest);
+    }
+
+    private static int GetHitTestResult(SnapbarResizeDirection direction)
+    {
+        return direction switch
+        {
+            SnapbarResizeDirection.Left => HtLeft,
+            SnapbarResizeDirection.TopLeft => HtTopLeft,
+            SnapbarResizeDirection.Top => HtTop,
+            SnapbarResizeDirection.TopRight => HtTopRight,
+            SnapbarResizeDirection.Right => HtRight,
+            SnapbarResizeDirection.BottomRight => HtBottomRight,
+            SnapbarResizeDirection.Bottom => HtBottom,
+            SnapbarResizeDirection.BottomLeft => HtBottomLeft,
+            _ => 0,
+        };
     }
 
     private async Task RefreshAsync()
@@ -83,6 +155,12 @@ public partial class MainWindow : Window
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateLayoutMetrics();
+        PersistWindowSettings();
+    }
+
+    private void OnLocationChanged(object? sender, EventArgs e)
+    {
+        PersistWindowSettings();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -124,8 +202,72 @@ public partial class MainWindow : Window
     {
         var hasStatus = !string.IsNullOrEmpty(viewModel.StatusText);
         StatusTextBlock.Visibility = hasStatus ? Visibility.Visible : Visibility.Collapsed;
-        Height = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
+        var requiredHeight = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
             + (hasStatus ? StatusRowHeight : 0);
+        minimumWindowHeight = requiredHeight;
+        Height = TimelineSnapbarLayout.GetWindowHeight(Height, requiredHeight);
+        MinHeight = minimumWindowHeight;
+    }
+
+    private void RestoreWindowSettings()
+    {
+        var settings = settingsStore.Load();
+        if (settings is null || !settings.IsIntersecting(
+                SystemParameters.VirtualScreenLeft,
+                SystemParameters.VirtualScreenTop,
+                SystemParameters.VirtualScreenWidth,
+                SystemParameters.VirtualScreenHeight))
+        {
+            return;
+        }
+
+        Width = settings.Width;
+        Height = settings.Height;
+        Left = settings.Left;
+        Top = settings.Top;
+    }
+
+    private void PersistWindowSettings()
+    {
+        try
+        {
+            settingsStore.Save(new SnapbarWindowSettings(Left, Top, Width, Height));
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private void OnRootMouseEnter(object sender, MouseEventArgs e)
+    {
+        HoverSurface.Opacity = 1;
+    }
+
+    private void OnRootMouseLeave(object sender, MouseEventArgs e)
+    {
+        HoverSurface.Opacity = 0;
+    }
+
+    private void OnRootPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var isAppointmentTarget = false;
+        for (var current = e.OriginalSource as DependencyObject; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is Button)
+            {
+                isAppointmentTarget = true;
+                break;
+            }
+        }
+
+        if (SnapbarWindowInteraction.CanBeginDrag(isAppointmentTarget)
+            && e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
     }
 
     private static Button CreateBlockButton(TimelineBlockViewModel block, double width)

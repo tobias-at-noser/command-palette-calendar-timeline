@@ -14,6 +14,13 @@ public sealed class TimelineSnapbarLayoutTests
     }
 
     [Fact]
+    public void GetWindowHeightPreservesManualHeightAndOnlyExpandsForNewLanes()
+    {
+        Assert.Equal(96, TimelineSnapbarLayout.GetWindowHeight(96, 66));
+        Assert.Equal(96, TimelineSnapbarLayout.GetWindowHeight(36, 96));
+    }
+
+    [Fact]
     public void GetBlockTop_StacksLanesAboveTheRailWithoutClipping()
     {
         const int laneCount = 3;
