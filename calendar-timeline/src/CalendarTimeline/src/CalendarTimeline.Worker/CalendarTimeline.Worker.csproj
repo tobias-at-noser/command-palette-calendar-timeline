@@ -11,6 +11,6 @@
     <UseAppHost Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
+    <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" SetTargetFramework="TargetFramework=net10.0" GlobalPropertiesToRemove="TargetFramework" />
   </ItemGroup>
 </Project>

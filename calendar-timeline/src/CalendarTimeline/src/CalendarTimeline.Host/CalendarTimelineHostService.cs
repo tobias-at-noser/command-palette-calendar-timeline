@@ -38,9 +38,11 @@ public sealed class CalendarTimelineHostService
         {
             throw;
         }
-        catch
+        catch (Exception exception)
         {
-            cache.MarkUnavailable();
+            cache.MarkUnavailable(exception is TimeoutException
+                ? "Kalenderdaten nicht verfügbar: Outlook-Aktualisierung hat das Zeitlimit überschritten."
+                : HostSnapshotCache.UnavailableStatus);
             return cache.GetSnapshotResponse();
         }
         finally

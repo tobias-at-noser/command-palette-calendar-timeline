@@ -75,6 +75,41 @@ public sealed class WorkerHostSnapshotSourceTests
         }
     }
 
+    [Fact]
+    public async Task LoadSnapshotAsyncTimesOutAndStopsTheWorkerProcess()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var workerPath = await CreateExecutableWorkerAsync("printf '%s\\n' \"$$\" > \"$0.pid\"\nsleep 30");
+        var processIdPath = workerPath + ".pid";
+        var constructor = typeof(WorkerHostSnapshotSource).GetConstructor([typeof(string), typeof(TimeSpan)]);
+
+        Assert.NotNull(constructor);
+        var source = Assert.IsType<WorkerHostSnapshotSource>(constructor.Invoke([workerPath, TimeSpan.FromMilliseconds(250)]));
+
+        try
+        {
+            var loadTask = source.LoadSnapshotAsync(TestContext.Current.CancellationToken);
+            await WaitForFileAsync(processIdPath);
+
+            await Assert.ThrowsAsync<TimeoutException>(() => loadTask);
+
+            var processId = int.Parse(await File.ReadAllTextAsync(processIdPath, TestContext.Current.CancellationToken));
+            Assert.False(IsProcessRunning(processId));
+        }
+        finally
+        {
+            if (File.Exists(processIdPath))
+            {
+                var processId = int.Parse(await File.ReadAllTextAsync(processIdPath, TestContext.Current.CancellationToken));
+                TerminateProcess(processId);
+            }
+        }
+    }
+
     [Theory]
     [InlineData("net10.0")]
     [InlineData("net10.0", "linux-musl-x64")]
@@ -234,7 +269,7 @@ public sealed class WorkerHostSnapshotSourceTests
         using var process = Process.Start(new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"build \"{ResolveProjectPath("CalendarTimeline.Worker")}\"{(runtimeIdentifier is null ? " --no-restore" : $" -r {runtimeIdentifier}")} -o \"{outputDirectory}\"",
+            Arguments = $"build \"{ResolveProjectPath("CalendarTimeline.Worker")}\"{(runtimeIdentifier is null ? string.Empty : $" -r {runtimeIdentifier}")} -o \"{outputDirectory}\"",
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,

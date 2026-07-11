@@ -39,7 +39,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         this.autostartManager = autostartManager;
         shutdownDispatcher = new Control();
         shutdownDispatcher.CreateControl();
-        settings = settingsStore.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+        settings = settingsStore.Load();
         notifyIcon = new NotifyIcon
         {
             Text = "Calendar Timeline Host",

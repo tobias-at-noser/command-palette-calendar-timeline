@@ -26,6 +26,28 @@ public sealed class OutlookCalendarSnapshotSourceTests
     }
 
     [Fact]
+    public void HostProjectUsesWindowsWorkerTargetForWindowsHost()
+    {
+        var project = XDocument.Load(HostFile("CalendarTimeline.Host.csproj"));
+        var workerTargetFrameworks = project.Descendants("WorkerTargetFramework").ToArray();
+
+        Assert.Contains(workerTargetFrameworks, element =>
+            element.Attribute("Condition")?.Value.Contains("-windows", StringComparison.Ordinal) == true
+            && element.Value == "net10.0-windows10.0.19041.0");
+    }
+
+    [Fact]
+    public void HostProjectPrefersWindowsTargetForDefaultWindowsRun()
+    {
+        var project = XDocument.Load(HostFile("CalendarTimeline.Host.csproj"));
+        var targetFrameworks = project.Descendants("TargetFrameworks")
+            .Single(element => element.Attribute("Condition")?.Value.StartsWith("'$(OS)' == 'Windows_NT'", StringComparison.Ordinal) == true)
+            .Value;
+
+        Assert.Equal("net10.0-windows10.0.19041.0;net10.0", targetFrameworks);
+    }
+
+    [Fact]
     public void OutlookSourceUsesOutlookComApplicationOnWindows()
     {
         var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));
@@ -37,6 +59,16 @@ public sealed class OutlookCalendarSnapshotSourceTests
 
     private static string WorkerFile(string fileName)
     {
+        return ProjectFile("CalendarTimeline.Worker", fileName);
+    }
+
+    private static string HostFile(string fileName)
+    {
+        return ProjectFile("CalendarTimeline.Host", fileName);
+    }
+
+    private static string ProjectFile(string projectName, string fileName)
+    {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
 
         while (directory is not null)
@@ -44,7 +76,7 @@ public sealed class OutlookCalendarSnapshotSourceTests
             var candidate = Path.Combine(
                 directory.FullName,
                 "src",
-                "CalendarTimeline.Worker",
+                projectName,
                 fileName);
 
             if (File.Exists(candidate))

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' Or '$(HostWindowsPublish)' == 'true'">net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' Or '$(HostWindowsPublish)' == 'true'">net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT' And '$(HostWindowsPublish)' != 'true'">net10.0</TargetFrameworks>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,7 +11,8 @@
     <UseAppHost Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">false</UseAppHost>
     <UseWindowsForms Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseWindowsForms>
     <WorkerProjectPath>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\CalendarTimeline.Worker.csproj</WorkerProjectPath>
-    <WorkerTargetFramework>net10.0</WorkerTargetFramework>
+    <WorkerTargetFramework Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">net10.0-windows10.0.19041.0</WorkerTargetFramework>
+    <WorkerTargetFramework Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">net10.0</WorkerTargetFramework>
     <WorkerOutputDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\bin\$(Configuration)\$(WorkerTargetFramework)\</WorkerOutputDirectory>
     <WorkerPublishDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\obj\WorkerPublish\$(Configuration)\$(WorkerTargetFramework)\$(RuntimeIdentifier)\</WorkerPublishDirectory>
     <WpfProjectPath>$(MSBuildThisFileDirectory)..\CalendarTimeline.Wpf\CalendarTimeline.Wpf.csproj</WpfProjectPath>

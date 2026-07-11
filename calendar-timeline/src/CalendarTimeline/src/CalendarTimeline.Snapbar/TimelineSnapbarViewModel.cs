@@ -99,6 +99,11 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
         {
             throw;
         }
+        catch (InvalidOperationException exception) when (exception.Message.StartsWith($"{UnavailableStatusText}:", StringComparison.Ordinal))
+        {
+            Blocks.Clear();
+            StatusText = exception.Message;
+        }
         catch
         {
             Blocks.Clear();

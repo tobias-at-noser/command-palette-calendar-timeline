@@ -40,6 +40,19 @@ public sealed class HostSettingsStoreTests
         Assert.Equal(expected, actual);
     }
 
+    [Fact]
+    public async Task LoadSynchronouslyReadsStoredSettings()
+    {
+        using var directory = new TemporaryDirectory();
+        var path = Path.Combine(directory.Path, "settings.json");
+        var store = new HostSettingsStore(path);
+        var expected = new HostSettings(true, false, "Bottom");
+
+        await store.SaveAsync(expected, CancellationToken.None);
+
+        Assert.Equal(expected, store.Load());
+    }
+
     private sealed class TemporaryDirectory : IDisposable
     {
         public TemporaryDirectory()

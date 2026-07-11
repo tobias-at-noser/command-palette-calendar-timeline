@@ -17,6 +17,17 @@ public sealed class HostSettingsStore
 
     public string SettingsPath { get; }
 
+    public HostSettings Load()
+    {
+        if (!File.Exists(SettingsPath))
+        {
+            return HostSettings.Default;
+        }
+
+        using var stream = File.OpenRead(SettingsPath);
+        return JsonSerializer.Deserialize<HostSettings>(stream, SerializerOptions) ?? HostSettings.Default;
+    }
+
     public async Task<HostSettings> LoadAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(SettingsPath))

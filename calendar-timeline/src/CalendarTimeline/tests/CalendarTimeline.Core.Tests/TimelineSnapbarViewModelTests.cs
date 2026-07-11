@@ -41,6 +41,18 @@ public sealed class TimelineSnapbarViewModelTests
     }
 
     [Fact]
+    public async Task RefreshAsync_ShowsSafeHostUnavailableStatus()
+    {
+        const string status = "Kalenderdaten nicht verfügbar: Outlook-Aktualisierung hat das Zeitlimit überschritten.";
+        var viewModel = new TimelineSnapbarViewModel(new SafeStatusFailingSnapbarSnapshotClient(status));
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        Assert.Equal(status, viewModel.StatusText);
+        Assert.Empty(viewModel.Blocks);
+    }
+
+    [Fact]
     public async Task RefreshAsync_PreservesExistingStateAndRethrowsWhenCallerCancels()
     {
         var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
@@ -171,6 +183,14 @@ public sealed class TimelineSnapbarViewModelTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("boom");
+        }
+    }
+
+    private sealed class SafeStatusFailingSnapbarSnapshotClient(string status) : ISnapbarSnapshotClient
+    {
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(status);
         }
     }
 
