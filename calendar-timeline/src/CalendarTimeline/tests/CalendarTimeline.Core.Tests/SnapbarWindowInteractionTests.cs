@@ -21,12 +21,12 @@ public sealed class SnapbarWindowInteractionTests
     }
 
     [Fact]
-    public void DefaultResizeBorderExtendsFurtherIntoTheOverlay()
+    public void DefaultResizeBorderExtendsFurtherInsideTheVisibleFrame()
     {
         Assert.Equal(
             SnapbarResizeDirection.Right,
             SnapbarWindowInteraction.GetResizeDirection(
-                187,
+                183,
                 50,
                 200,
                 100,

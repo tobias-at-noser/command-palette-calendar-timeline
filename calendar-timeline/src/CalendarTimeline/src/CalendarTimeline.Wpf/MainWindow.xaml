@@ -16,14 +16,15 @@
         MouseEnter="OnRootMouseEnter"
         MouseLeave="OnRootMouseLeave"
         PreviewMouseLeftButtonDown="OnRootPreviewMouseLeftButtonDown">
-    <Border x:Name="HoverSurface"
-            Margin="12,6"
-            Background="#55FFFFFF"
-            BorderBrush="#BFFFFFFF"
-            BorderThickness="1"
-            CornerRadius="3"
-            IsHitTestVisible="False"
-            Opacity="0" />
+    <Grid x:Name="HoverSurface"
+          IsHitTestVisible="False"
+          Opacity="0">
+      <Border Background="#55FFFFFF" />
+      <Border Margin="12,6"
+              BorderBrush="#BFFFFFFF"
+              BorderThickness="1"
+              CornerRadius="3" />
+    </Grid>
     <Grid Margin="12,6">
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
