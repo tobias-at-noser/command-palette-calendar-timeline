@@ -52,8 +52,19 @@ public sealed class Task7ReviewFixTests
         var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
         var traySource = File.ReadAllText(ResolveHostSourcePath("TrayApplicationContext.cs"));
 
-        Assert.Contains("catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)", programSource);
+        Assert.Contains("catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)", programSource);
         Assert.Contains("catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)", traySource);
+    }
+
+    [Fact]
+    public void WindowsHostStartsPipeServerBeforeSchedulingInitialRefresh()
+    {
+        var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
+
+        Assert.True(IndexOf(programSource, "var serverTask = server.RunAsync")
+            < IndexOf(programSource, "_ = RefreshInitialSnapshotAsync"));
+        Assert.True(IndexOf(programSource, "_ = RefreshInitialSnapshotAsync")
+            < IndexOf(programSource, "System.Windows.Forms.Application.Run(context);"));
     }
 
     [Fact]
@@ -72,13 +83,14 @@ public sealed class Task7ReviewFixTests
     public void TrayLoopExitAndServerFailureCancelTheSharedHostToken()
     {
         var programSource = File.ReadAllText(ResolveHostSourcePath("Program.cs"));
+        var applicationRunIndex = IndexOf(programSource, "System.Windows.Forms.Application.Run(context);");
 
         Assert.Contains("serverTask.ContinueWith", programSource);
         Assert.Contains("_ => cancellationSource.Cancel()", programSource);
-        Assert.True(IndexOf(programSource, "System.Windows.Forms.Application.Run(context);")
-            < IndexOf(programSource, "cancellationSource.Cancel();", IndexOf(programSource, "System.Windows.Forms.Application.Run(context);")));
-        Assert.True(IndexOf(programSource, "cancellationSource.Cancel();", IndexOf(programSource, "System.Windows.Forms.Application.Run(context);") )
-            < IndexOf(programSource, "await serverTask;"));
+        Assert.True(applicationRunIndex
+            < IndexOf(programSource, "cancellationSource.Cancel();", applicationRunIndex));
+        Assert.True(IndexOf(programSource, "cancellationSource.Cancel();", applicationRunIndex)
+            < IndexOf(programSource, "await serverTask;", applicationRunIndex));
     }
 
     [Fact]

@@ -29,6 +29,18 @@ public sealed class CalendarTimelineHostServiceTests
     }
 
     [Fact]
+    public async Task RefreshSnapshotRequestReturnsSafeTimeoutStatusWhenSourceTimesOut()
+    {
+        var service = new CalendarTimelineHostService(new HostSnapshotCache(), new TimingOutHostSnapshotSource());
+
+        var response = await service.HandleAsync(new RefreshSnapshotRequest(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            "Kalenderdaten nicht verfügbar: Outlook-Aktualisierung hat das Zeitlimit überschritten.",
+            Assert.IsType<ErrorResponse>(response).Message);
+    }
+
+    [Fact]
     public async Task RefreshSnapshotRequestClearsCachedSnapshotWhenLaterRefreshFails()
     {
         var snapshot = CreateSnapshot();
@@ -123,6 +135,14 @@ public sealed class CalendarTimelineHostServiceTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             return Task.FromException<CalendarSnapshot>(new InvalidOperationException());
+        }
+    }
+
+    private sealed class TimingOutHostSnapshotSource : IHostSnapshotSource
+    {
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromException<CalendarSnapshot>(new TimeoutException());
         }
     }
 

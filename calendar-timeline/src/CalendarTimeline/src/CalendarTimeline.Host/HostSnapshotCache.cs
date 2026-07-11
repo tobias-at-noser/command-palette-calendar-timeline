@@ -5,9 +5,11 @@ namespace CalendarTimeline.Host;
 
 public sealed class HostSnapshotCache
 {
+    public const string UnavailableStatus = "Kalenderdaten nicht verfügbar";
+
     private CalendarSnapshot? snapshot;
 
-    public string Status { get; private set; } = "Kalenderdaten nicht verfügbar";
+    public string Status { get; private set; } = UnavailableStatus;
 
     public CalendarSnapshot? Snapshot => snapshot;
 
@@ -17,16 +19,16 @@ public sealed class HostSnapshotCache
         Status = status;
     }
 
-    public void MarkUnavailable()
+    public void MarkUnavailable(string status = UnavailableStatus)
     {
         snapshot = null;
-        Status = "Kalenderdaten nicht verfügbar";
+        Status = status;
     }
 
     public CalendarTimelineResponse GetSnapshotResponse()
     {
         return snapshot is null
-            ? new ErrorResponse("Kalenderdaten nicht verfügbar")
+            ? new ErrorResponse(Status)
             : new SnapshotResponse(snapshot);
     }
 }

@@ -26,22 +26,15 @@ public static class Program
             cancellationSource.Cancel();
         };
 
-        try
-        {
-            await service.HandleAsync(new RefreshSnapshotRequest(), cancellationSource.Token);
-        }
-        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
-        {
-            return 0;
-        }
-
         if (OperatingSystem.IsWindows())
         {
             await RunWindowsHostAsync(service, server, cancellationSource);
             return 0;
         }
 
-        await server.RunAsync(service.HandleAsync, cancellationSource.Token);
+        var serverTask = server.RunAsync(service.HandleAsync, cancellationSource.Token);
+        _ = RefreshInitialSnapshotAsync(service, cancellationSource.Token);
+        await serverTask;
         return 0;
     }
 
@@ -52,6 +45,7 @@ public static class Program
         using var context = new TrayApplicationContext(service, cancellationToken, cancellationSource.Cancel);
         using var cancellationRegistration = cancellationToken.Register(context.ExitThreadSafely);
         var serverTask = server.RunAsync(service.HandleAsync, cancellationToken);
+        _ = RefreshInitialSnapshotAsync(service, cancellationToken);
         _ = serverTask.ContinueWith(
             _ => cancellationSource.Cancel(),
             CancellationToken.None,
@@ -70,5 +64,16 @@ public static class Program
 #else
         await server.RunAsync(service.HandleAsync, cancellationToken);
 #endif
+    }
+
+    private static async Task RefreshInitialSnapshotAsync(CalendarTimelineHostService service, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await service.HandleAsync(new RefreshSnapshotRequest(), cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
     }
 }

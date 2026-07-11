@@ -5,8 +5,10 @@ namespace CalendarTimeline.Host;
 
 public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
 {
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(15);
     private readonly string workerExecutablePath;
     private readonly bool launchesViaDotnet;
+    private readonly TimeSpan timeout;
 
     public WorkerHostSnapshotSource()
         : this(ResolveWorkerExecutablePath())
@@ -14,14 +16,24 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
     }
 
     public WorkerHostSnapshotSource(string workerExecutablePath)
+        : this(workerExecutablePath, DefaultTimeout)
+    {
+    }
+
+    public WorkerHostSnapshotSource(string workerExecutablePath, TimeSpan timeout)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workerExecutablePath);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
         this.workerExecutablePath = workerExecutablePath;
         launchesViaDotnet = string.Equals(Path.GetExtension(workerExecutablePath), ".dll", StringComparison.OrdinalIgnoreCase);
+        this.timeout = timeout;
     }
 
     public async Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
     {
+        using var timeoutSource = new CancellationTokenSource(timeout);
+        using var executionSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
+        var executionToken = executionSource.Token;
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
@@ -48,9 +60,9 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
             }
 
             hasStarted = true;
-            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
+            var outputTask = process.StandardOutput.ReadToEndAsync(executionToken);
+            var errorTask = process.StandardError.ReadToEndAsync(executionToken);
+            await process.WaitForExitAsync(executionToken);
             var output = await outputTask;
             var error = await errorTask;
 
@@ -60,6 +72,15 @@ public sealed class WorkerHostSnapshotSource : IHostSnapshotSource
             }
 
             return CalendarSnapshotJson.Deserialize(output);
+        }
+        catch (OperationCanceledException exception) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            if (hasStarted)
+            {
+                await StopProcessAsync(process);
+            }
+
+            throw new TimeoutException("Calendar worker timed out.", exception);
         }
         catch
         {
