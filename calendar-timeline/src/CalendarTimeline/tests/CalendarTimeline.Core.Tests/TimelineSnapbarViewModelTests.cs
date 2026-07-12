@@ -96,6 +96,74 @@ public sealed class TimelineSnapbarViewModelTests
     }
 
     [Fact]
+    public async Task RefreshAsync_PublishesCompleteBlockSetAfterAnEmptySnapshot()
+    {
+        var now = new DateTimeOffset(2026, 7, 11, 10, 0, 0, TimeSpan.Zero);
+        var emptySnapshot = new CalendarSnapshot(now, now.AddMinutes(-30), now.AddHours(4), [], null);
+        var populatedSnapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [new Appointment("new", "Neu", "Raum", now, now.AddMinutes(30), false, false, null)],
+            null);
+        var viewModel = new TimelineSnapbarViewModel(
+            new SequentialSnapbarSnapshotClient(emptySnapshot, populatedSnapshot));
+        var blockPublications = 0;
+        viewModel.PropertyChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.PropertyName == nameof(TimelineSnapbarViewModel.Blocks))
+            {
+                blockPublications++;
+            }
+        };
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+        blockPublications = 0;
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        var block = Assert.Single(viewModel.Blocks);
+        Assert.Equal("Neu", block.Title);
+        Assert.Equal(0, block.Lane);
+        Assert.Equal(1, blockPublications);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_PublishesOverlappingBlocksTogetherAfterAnEmptySnapshot()
+    {
+        var now = new DateTimeOffset(2026, 7, 11, 10, 0, 0, TimeSpan.Zero);
+        var emptySnapshot = new CalendarSnapshot(now, now.AddMinutes(-30), now.AddHours(4), [], null);
+        var populatedSnapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [
+                new Appointment("early", "Früh", "Raum", now, now.AddMinutes(30), false, false, null),
+                new Appointment("overlap", "Überlappend", "Raum", now.AddMinutes(15), now.AddMinutes(45), false, false, null),
+            ],
+            null);
+        var viewModel = new TimelineSnapbarViewModel(
+            new SequentialSnapbarSnapshotClient(emptySnapshot, populatedSnapshot));
+        var blockPublications = 0;
+        viewModel.PropertyChanged += (_, eventArgs) =>
+        {
+            if (eventArgs.PropertyName == nameof(TimelineSnapbarViewModel.Blocks))
+            {
+                blockPublications++;
+            }
+        };
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+        blockPublications = 0;
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        Assert.Equal(["Früh", "Überlappend"], viewModel.Blocks.Select(block => block.Title).ToArray());
+        Assert.Equal([0, 1], viewModel.Blocks.Select(block => block.Lane).ToArray());
+        Assert.Equal(1, blockPublications);
+    }
+
+    [Fact]
     public async Task RefreshAsync_ProvidesTimeAndLocationForTheBubbleTooltip()
     {
         var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
@@ -175,6 +243,16 @@ public sealed class TimelineSnapbarViewModelTests
         public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
         {
             return Task.FromResult(snapshot);
+        }
+    }
+
+    private sealed class SequentialSnapbarSnapshotClient(params CalendarSnapshot[] snapshots) : ISnapbarSnapshotClient
+    {
+        private int index;
+
+        public Task<CalendarSnapshot> LoadSnapshotAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(snapshots[index++]);
         }
     }
 

@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private readonly SnapbarWindowSettingsStore settingsStore = new();
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
     private bool refreshInProgress;
+    private bool isUpdatingLayout;
     private double minimumWindowHeight;
     private HwndSource? hwndSource;
 
@@ -121,7 +122,6 @@ public partial class MainWindow : Window
         SizeChanged += OnSizeChanged;
         refreshTimer.Tick += OnRefreshTimerTick;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        viewModel.Blocks.CollectionChanged += (_, _) => UpdateLayoutMetrics();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -258,12 +258,11 @@ public partial class MainWindow : Window
     private async Task RefreshAsync()
     {
         await viewModel.RefreshAsync(CancellationToken.None);
-        UpdateLayoutMetrics();
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        UpdateLayoutMetrics();
+        TryUpdateLayoutMetrics();
         PersistWindowSettings();
     }
 
@@ -274,9 +273,33 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(TimelineSnapbarViewModel.StatusText))
+        if (e.PropertyName == nameof(TimelineSnapbarViewModel.Blocks))
         {
+            TryUpdateLayoutMetrics();
+        }
+    }
+
+    private void TryUpdateLayoutMetrics()
+    {
+        if (isUpdatingLayout)
+        {
+            return;
+        }
+
+        try
+        {
+            isUpdatingLayout = true;
             UpdateLayoutMetrics();
+        }
+        catch
+        {
+            BlocksCanvas.Children.Clear();
+            viewModel.ReportDisplayUnavailable();
+            UpdateWindowHeight();
+        }
+        finally
+        {
+            isUpdatingLayout = false;
         }
     }
 

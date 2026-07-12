@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -43,6 +42,7 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
     public const string UnavailableStatusText = "Kalenderdaten nicht verfügbar";
 
     private readonly ISnapbarSnapshotClient snapshotClient;
+    private IReadOnlyList<TimelineBlockViewModel> blocks = [];
     private string statusText = string.Empty;
 
     public TimelineSnapbarViewModel(ISnapbarSnapshotClient snapshotClient)
@@ -50,7 +50,7 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
         this.snapshotClient = snapshotClient;
     }
 
-    public ObservableCollection<TimelineBlockViewModel> Blocks { get; } = [];
+    public IReadOnlyList<TimelineBlockViewModel> Blocks => blocks;
 
     public string StatusText
     {
@@ -87,13 +87,7 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
                     block.Appointment.TeamsUrl))
                 .ToArray();
 
-            Blocks.Clear();
-            foreach (var block in projectedBlocks)
-            {
-                Blocks.Add(block);
-            }
-
-            StatusText = snapshot.StatusMessage ?? string.Empty;
+            ApplyRefreshResult(projectedBlocks, snapshot.StatusMessage ?? string.Empty);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -101,19 +95,29 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
         }
         catch (InvalidOperationException exception) when (exception.Message.StartsWith($"{UnavailableStatusText}:", StringComparison.Ordinal))
         {
-            Blocks.Clear();
-            StatusText = exception.Message;
+            ApplyRefreshResult([], exception.Message);
         }
         catch
         {
-            Blocks.Clear();
-            StatusText = UnavailableStatusText;
+            ApplyRefreshResult([], UnavailableStatusText);
         }
+    }
+
+    private void ApplyRefreshResult(IReadOnlyList<TimelineBlockViewModel> nextBlocks, string nextStatusText)
+    {
+        blocks = nextBlocks;
+        StatusText = nextStatusText;
+        OnPropertyChanged(nameof(Blocks));
     }
 
     public static void OpenTeamsUrl(string url)
     {
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    public void ReportDisplayUnavailable()
+    {
+        StatusText = UnavailableStatusText;
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

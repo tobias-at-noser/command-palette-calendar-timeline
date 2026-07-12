@@ -157,6 +157,18 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("refreshTimer.Tick -= OnRefreshTimerTick;", source);
     }
 
+    [Fact]
+    public void SnapbarLayoutFailureMakesTheUnavailableStatusVisible()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var catchIndex = source.IndexOf("catch\n        {\n            BlocksCanvas.Children.Clear();", StringComparison.Ordinal);
+
+        Assert.True(catchIndex >= 0, "Could not find the snapbar layout failure handler.");
+        var failureHandler = source[catchIndex..source.IndexOf("finally", catchIndex, StringComparison.Ordinal)];
+        Assert.Contains("viewModel.ReportDisplayUnavailable();", failureHandler);
+        Assert.Contains("UpdateWindowHeight();", failureHandler);
+    }
+
     private static int IndexOf(string source, string value)
     {
         return IndexOf(source, value, 0);
