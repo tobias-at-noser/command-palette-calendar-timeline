@@ -213,6 +213,19 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("TimelineTimeDisplay.GetDateTooltip(now)", source);
     }
 
+    [Fact]
+    public void SnapbarSourceRestoresTopmostZOrderWithoutTakingFocusAfterDeactivation()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var handlerIndex = IndexOf(source, "private void OnDeactivated");
+        var handler = source[handlerIndex..source.IndexOf("private void OnClosed", handlerIndex, StringComparison.Ordinal)];
+
+        Assert.Contains("Deactivated += OnDeactivated;", source);
+        Assert.Contains("private const uint SwpNoActivate = 0x0010;", source);
+        Assert.Contains("HwndTopmost", handler);
+        Assert.Contains("SwpNoActivate", handler);
+    }
+
     private static int IndexOf(string source, string value)
     {
         return IndexOf(source, value, 0);

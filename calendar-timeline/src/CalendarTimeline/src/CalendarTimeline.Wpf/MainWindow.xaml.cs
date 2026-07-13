@@ -36,7 +36,9 @@ public partial class MainWindow : Window
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
     private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
     private const uint SwpFrameChanged = 0x0020;
+    private static readonly IntPtr HwndTopmost = new(-1);
     private readonly TimelineSnapbarViewModel viewModel;
     private readonly SnapbarWindowSettingsStore settingsStore = new();
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
@@ -119,6 +121,7 @@ public partial class MainWindow : Window
         RestoreWindowSettings();
 
         Loaded += OnLoaded;
+        Deactivated += OnDeactivated;
         Closed += OnClosed;
         SourceInitialized += OnSourceInitialized;
         LocationChanged += OnLocationChanged;
@@ -131,6 +134,23 @@ public partial class MainWindow : Window
     {
         await RefreshAsync();
         refreshTimer.Start();
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        if (hwndSource is null)
+        {
+            return;
+        }
+
+        SetWindowPos(
+            hwndSource.Handle,
+            HwndTopmost,
+            0,
+            0,
+            0,
+            0,
+            SwpNoSize | SwpNoMove | SwpNoActivate);
     }
 
     private async void OnRefreshTimerTick(object? sender, EventArgs e)
@@ -153,6 +173,7 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        Deactivated -= OnDeactivated;
         if (hwndSource is not null)
         {
             hwndSource.RemoveHook(WndProc);
