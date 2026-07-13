@@ -1,0 +1,362 @@
+using System.Diagnostics;
+using System.Reflection;
+using CalendarTimeline.Host;
+using Xunit;
+
+namespace CalendarTimeline.Core.Tests;
+
+public sealed class WorkerHostSnapshotSourceTests
+{
+    [Fact]
+    public async Task LoadSnapshotAsyncStartsWorkerAndDeserializesSnapshot()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var workerPath = await CreateExecutableWorkerAsync(
+            "[ \"$1\" = \"--outlook-once\" ] || exit 3\nprintf '%s\\n' '{\"generatedAt\":\"2026-07-10T10:00:00+00:00\",\"windowStart\":\"2026-07-10T09:30:00+00:00\",\"windowEnd\":\"2026-07-10T14:00:00+00:00\",\"appointments\":[],\"statusMessage\":null}'");
+        var source = new WorkerHostSnapshotSource(workerPath);
+
+        var snapshot = await source.LoadSnapshotAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero), snapshot.GeneratedAt);
+    }
+
+    [Fact]
+    public async Task LoadSnapshotAsyncIncludesWorkerErrorWhenWorkerFails()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var source = new WorkerHostSnapshotSource(await CreateExecutableWorkerAsync(
+            "printf '%s\\n' 'Outlook-Kalender nicht verfügbar' >&2\nexit 2"));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => source.LoadSnapshotAsync(TestContext.Current.CancellationToken));
+
+        Assert.Contains("Outlook-Kalender nicht verfügbar", exception.Message);
+    }
+
+    [Fact]
+    public async Task LoadSnapshotAsyncCancelsAndWaitsForTheWorkerProcess()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var workerPath = await CreateExecutableWorkerAsync("printf '%s\\n' \"$$\" > \"$0.pid\"\nsleep 30");
+        var processIdPath = workerPath + ".pid";
+        var source = new WorkerHostSnapshotSource(workerPath);
+        using var cancellationSource = new CancellationTokenSource();
+
+        var loadTask = source.LoadSnapshotAsync(cancellationSource.Token);
+        await WaitForFileAsync(processIdPath);
+        cancellationSource.Cancel();
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => loadTask);
+
+            var processId = int.Parse(await File.ReadAllTextAsync(processIdPath, TestContext.Current.CancellationToken));
+            Assert.False(IsProcessRunning(processId));
+        }
+        finally
+        {
+            if (File.Exists(processIdPath))
+            {
+                var processId = int.Parse(await File.ReadAllTextAsync(processIdPath, TestContext.Current.CancellationToken));
+                TerminateProcess(processId);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task LoadSnapshotAsyncTimesOutAndStopsTheWorkerProcess()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var workerPath = await CreateExecutableWorkerAsync("printf '%s\\n' \"$$\" > \"$0.pid\"\nsleep 30");
+        var processIdPath = workerPath + ".pid";
+        var constructor = typeof(WorkerHostSnapshotSource).GetConstructor([typeof(string), typeof(TimeSpan)]);
+
+        Assert.NotNull(constructor);
+        var source = Assert.IsType<WorkerHostSnapshotSource>(constructor.Invoke([workerPath, TimeSpan.FromMilliseconds(250)]));
+
+        try
+        {
+            var loadTask = source.LoadSnapshotAsync(TestContext.Current.CancellationToken);
+            await WaitForFileAsync(processIdPath);
+
+            await Assert.ThrowsAsync<TimeoutException>(() => loadTask);
+
+            var processId = int.Parse(await File.ReadAllTextAsync(processIdPath, TestContext.Current.CancellationToken));
+            Assert.False(IsProcessRunning(processId));
+        }
+        finally
+        {
+            if (File.Exists(processIdPath))
+            {
+                var processId = int.Parse(await File.ReadAllTextAsync(processIdPath, TestContext.Current.CancellationToken));
+                TerminateProcess(processId);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("net10.0")]
+    [InlineData("net10.0", "linux-musl-x64")]
+    public async Task ResolveWorkerExecutablePathFindsSiblingWorkerDllWithoutAnAppHost(string targetFramework, string? runtimeIdentifier = null)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var rootDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string[] outputPath = runtimeIdentifier is null
+            ? ["Debug", targetFramework]
+            : ["Debug", targetFramework, runtimeIdentifier];
+        var hostOutputDirectory = Path.Combine([rootDirectory, "src", "CalendarTimeline.Host", "bin", .. outputPath]);
+        var workerPath = Path.Combine([rootDirectory, "src", "CalendarTimeline.Worker", "bin", .. outputPath, "CalendarTimeline.Worker.dll"]);
+
+        try
+        {
+            Directory.CreateDirectory(hostOutputDirectory);
+            await BuildWorkerAsync(Path.GetDirectoryName(workerPath)!, runtimeIdentifier);
+
+            Assert.Equal(workerPath, ResolveWorkerExecutablePath(hostOutputDirectory));
+        }
+        finally
+        {
+            Directory.Delete(rootDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveWorkerExecutablePathFindsCoDeployedWorkerDll()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var workerPath = Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll");
+
+        try
+        {
+            Directory.CreateDirectory(outputDirectory);
+            await BuildWorkerAsync(outputDirectory);
+
+            Assert.Equal(workerPath, ResolveWorkerExecutablePath(outputDirectory));
+        }
+        finally
+        {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task HostBuildCopiesWorkerArtifactToItsOutput()
+    {
+        var hostProjectPath = ResolveProjectPath("CalendarTimeline.Host");
+        var outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{hostProjectPath}\" --no-restore -o \"{outputDirectory}\"",
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            });
+            Assert.NotNull(process);
+
+            await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+
+            Assert.True(process.ExitCode == 0, error);
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.exe")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.dll")));
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("win-x64")]
+    [InlineData("win-arm64")]
+    public async Task HostPublishIncludesRunnableWorkerAndWpfArtifacts(string runtimeIdentifier)
+    {
+        var hostProjectPath = ResolveProjectPath("CalendarTimeline.Host");
+        var outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"publish \"{hostProjectPath}\" -f net10.0-windows10.0.19041.0 -r {runtimeIdentifier} -p:HostWindowsPublish=true -o \"{outputDirectory}\"",
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            });
+            Assert.NotNull(process);
+
+            await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+
+            Assert.True(process.ExitCode == 0, error);
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.exe")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.dll")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.deps.json")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Worker.runtimeconfig.json")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.exe")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.dll")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.deps.json")));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Wpf.runtimeconfig.json")));
+            var corePath = Path.Combine(outputDirectory, "CalendarTimeline.Core.dll");
+            Assert.True(File.Exists(corePath));
+            Assert.True(File.Exists(Path.Combine(outputDirectory, "CalendarTimeline.Snapbar.dll")));
+
+            File.Delete(corePath);
+            Assert.Null(FindWorkerArtifactPath(outputDirectory));
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
+    }
+
+    private static async Task<string> CreateExecutableWorkerAsync(string command)
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            throw new PlatformNotSupportedException();
+        }
+
+        var tempDirectory = Directory.CreateTempSubdirectory();
+        var workerPath = Path.Combine(tempDirectory.FullName, "fake-worker.sh");
+        await File.WriteAllTextAsync(
+            workerPath,
+            $"#!/bin/sh\n{command}\n",
+            TestContext.Current.CancellationToken);
+        File.SetUnixFileMode(workerPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        return workerPath;
+    }
+
+    private static async Task BuildWorkerAsync(string outputDirectory, string? runtimeIdentifier = null)
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"build \"{ResolveProjectPath("CalendarTimeline.Worker")}\"{(runtimeIdentifier is null ? string.Empty : $" -r {runtimeIdentifier}")} -o \"{outputDirectory}\"",
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        });
+        Assert.NotNull(process);
+
+        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+        var error = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Assert.True(process.ExitCode == 0, error);
+    }
+
+    private static string ResolveWorkerExecutablePath(string hostBaseDirectory)
+    {
+        var method = typeof(WorkerHostSnapshotSource).GetMethod(
+            "ResolveWorkerExecutablePath",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            types: [typeof(string)],
+            modifiers: null);
+        Assert.NotNull(method);
+        return Assert.IsType<string>(method.Invoke(null, [hostBaseDirectory]));
+    }
+
+    private static string? FindWorkerArtifactPath(string directory)
+    {
+        var method = typeof(WorkerHostSnapshotSource).GetMethod(
+            "FindWorkerArtifactPath",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+        return method.Invoke(null, [directory]) as string;
+    }
+
+    private static string ResolveProjectPath(string projectName)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var projectPath = Path.Combine(directory.FullName, "src", projectName, $"{projectName}.csproj");
+            if (File.Exists(projectPath))
+            {
+                return projectPath;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not locate {projectName}.csproj.");
+    }
+
+    private static async Task WaitForFileAsync(string path)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            if (File.Exists(path))
+            {
+                return;
+            }
+
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        throw new TimeoutException($"Worker did not create '{path}'.");
+    }
+
+    private static bool IsProcessRunning(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            return !process.HasExited;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private static void TerminateProcess(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit();
+            }
+        }
+        catch (ArgumentException)
+        {
+        }
+    }
+}

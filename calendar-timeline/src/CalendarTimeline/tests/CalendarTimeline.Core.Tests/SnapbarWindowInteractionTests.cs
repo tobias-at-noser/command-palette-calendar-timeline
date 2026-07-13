@@ -1,0 +1,91 @@
+using CalendarTimeline.Snapbar;
+using Xunit;
+
+namespace CalendarTimeline.Core.Tests;
+
+public sealed class SnapbarWindowInteractionTests
+{
+    [Theory]
+    [InlineData(0, 0, SnapbarResizeDirection.Left)]
+    [InlineData(100, 0, SnapbarResizeDirection.None)]
+    [InlineData(199, 0, SnapbarResizeDirection.Right)]
+    [InlineData(199, 50, SnapbarResizeDirection.Right)]
+    [InlineData(199, 99, SnapbarResizeDirection.BottomRight)]
+    [InlineData(100, 99, SnapbarResizeDirection.Bottom)]
+    [InlineData(0, 99, SnapbarResizeDirection.BottomLeft)]
+    [InlineData(0, 50, SnapbarResizeDirection.Left)]
+    [InlineData(100, 50, SnapbarResizeDirection.None)]
+    public void GetResizeDirectionLeavesTheTopEdgeOutOfTheResizeFrame(double x, double y, SnapbarResizeDirection expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.GetResizeDirection(x, y, 200, 100, 8));
+    }
+
+    [Fact]
+    public void DefaultResizeBorderExtendsFurtherInsideTheVisibleFrame()
+    {
+        Assert.Equal(
+            SnapbarResizeDirection.Right,
+            SnapbarWindowInteraction.GetResizeDirection(
+                183,
+                50,
+                200,
+                100,
+                SnapbarWindowInteraction.DefaultResizeBorder));
+    }
+
+    [Theory]
+    [InlineData(100, 50, true)]
+    [InlineData(499, 97, true)]
+    [InlineData(99, 50, false)]
+    [InlineData(500, 50, false)]
+    [InlineData(100, 98, false)]
+    public void IsWithinBoundsUsesTheNativeWindowRectangle(int x, int y, bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.IsWithinBounds(x, y, 100, 50, 500, 98));
+    }
+
+    [Theory]
+    [InlineData(0xF020, true)]
+    [InlineData(0xF021, true)]
+    [InlineData(0xF030, true)]
+    [InlineData(0xF060, false)]
+    public void ShouldBlockSystemCommandRejectsMinimizeAndMaximize(int command, bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.ShouldBlockSystemCommand(command));
+    }
+
+    [Theory]
+    [InlineData(false, SnapbarResizeDirection.None, true)]
+    [InlineData(true, SnapbarResizeDirection.None, false)]
+    [InlineData(false, SnapbarResizeDirection.Left, false)]
+    public void ShouldUseMoveCursorOnlyOnFreeNonResizeAreas(
+        bool isAppointmentTarget,
+        SnapbarResizeDirection resizeDirection,
+        bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.ShouldUseMoveCursor(isAppointmentTarget, resizeDirection));
+    }
+
+    [Theory]
+    [InlineData(SnapbarResizeDirection.None, true)]
+    [InlineData(SnapbarResizeDirection.Top, false)]
+    public void ShouldUseClientHitTestOnlyOutsideResizeZones(SnapbarResizeDirection resizeDirection, bool expected)
+    {
+        Assert.Equal(expected, SnapbarWindowInteraction.ShouldUseClientHitTest(resizeDirection));
+    }
+
+    [Fact]
+    public void RemoveSystemButtonStylesClearsMinimizeAndMaximizeBoxes()
+    {
+        const long style = 0x00010000 | 0x00020000 | 0x00040000;
+
+        Assert.Equal(0x00040000, SnapbarWindowInteraction.RemoveSystemButtonStyles(style));
+    }
+
+    [Fact]
+    public void CanBeginDragRejectsAppointmentTargets()
+    {
+        Assert.False(SnapbarWindowInteraction.CanBeginDrag(true));
+        Assert.True(SnapbarWindowInteraction.CanBeginDrag(false));
+    }
+}

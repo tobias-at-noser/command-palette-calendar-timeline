@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' Or '$(HostWindowsPublish)' == 'true'">net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT' And '$(HostWindowsPublish)' != 'true'">net10.0</TargetFrameworks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UseAppHost Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseAppHost>
+    <UseAppHost Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">false</UseAppHost>
+    <UseWindowsForms Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">true</UseWindowsForms>
+    <WorkerProjectPath>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\CalendarTimeline.Worker.csproj</WorkerProjectPath>
+    <WorkerTargetFramework Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">net10.0-windows10.0.19041.0</WorkerTargetFramework>
+    <WorkerTargetFramework Condition="!$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">net10.0</WorkerTargetFramework>
+    <WorkerOutputDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\bin\$(Configuration)\$(WorkerTargetFramework)\</WorkerOutputDirectory>
+    <WorkerPublishDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Worker\obj\WorkerPublish\$(Configuration)\$(WorkerTargetFramework)\$(RuntimeIdentifier)\</WorkerPublishDirectory>
+    <WpfProjectPath>$(MSBuildThisFileDirectory)..\CalendarTimeline.Wpf\CalendarTimeline.Wpf.csproj</WpfProjectPath>
+    <WpfTargetFramework>net10.0-windows</WpfTargetFramework>
+    <WpfDevelopmentRuntimeIdentifier>win-x64</WpfDevelopmentRuntimeIdentifier>
+    <WpfOutputDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Wpf\bin\$(Configuration)\$(WpfTargetFramework)\$(WpfDevelopmentRuntimeIdentifier)\</WpfOutputDirectory>
+    <WpfPublishDirectory>$(MSBuildThisFileDirectory)..\CalendarTimeline.Wpf\obj\WpfPublish\$(Configuration)\$(WpfTargetFramework)\$(RuntimeIdentifier)\</WpfPublishDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CalendarTimeline.Core\CalendarTimeline.Core.csproj" />
+    <ProjectReference Include="..\CalendarTimeline.Ipc\CalendarTimeline.Ipc.csproj" />
+  </ItemGroup>
+  <Target Name="BuildWorkerWithHost" BeforeTargets="Build" Condition="'$(TargetFramework)' != '' and '$(RuntimeIdentifier)' == ''">
+    <MSBuild Projects="$(WorkerProjectPath)"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);TargetFramework=$(WorkerTargetFramework)" />
+  </Target>
+  <Target Name="CopyWorkerArtifactsToHostOutput" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+    <ItemGroup>
+      <WorkerArtifact Include="$(WorkerOutputDirectory)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WorkerArtifact)"
+          DestinationFiles="@(WorkerArtifact->'$(TargetDir)%(RecursiveDir)%(Filename)%(Extension)')"
+           SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="BuildWpfWithHost" BeforeTargets="Build" Condition="'$(TargetFramework)' != '' and '$(RuntimeIdentifier)' == ''">
+    <Exec Command="dotnet msbuild &quot;$(WpfProjectPath)&quot; /t:Restore,Build /p:Configuration=$(Configuration) /p:RuntimeIdentifier=$(WpfDevelopmentRuntimeIdentifier) /p:UseAppHost=true" />
+  </Target>
+  <Target Name="CopyWpfArtifactsToHostOutput" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+    <ItemGroup>
+      <WpfArtifact Include="$(WpfOutputDirectory)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WpfArtifact)"
+          DestinationFiles="@(WpfArtifact->'$(TargetDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishWorkerWithHost" AfterTargets="Publish" Condition="'$(TargetPlatformIdentifier)' == 'Windows' and '$(RuntimeIdentifier)' != ''">
+    <MSBuild Projects="$(WorkerProjectPath)"
+             Targets="Restore;Publish"
+             Properties="Configuration=$(Configuration);TargetFramework=$(WorkerTargetFramework);RuntimeIdentifier=$(RuntimeIdentifier);PublishDir=$(WorkerPublishDirectory);UseAppHost=true" />
+    <ItemGroup>
+      <WorkerPublishArtifact Include="$(WorkerPublishDirectory)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WorkerPublishArtifact)"
+          DestinationFiles="@(WorkerPublishArtifact->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')"
+           SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishWpfWithHost" AfterTargets="Publish" Condition="'$(TargetPlatformIdentifier)' == 'Windows' and '$(RuntimeIdentifier)' != ''">
+    <Exec Command="dotnet msbuild &quot;$(WpfProjectPath)&quot; /t:Restore,Publish /p:Configuration=$(Configuration) /p:RuntimeIdentifier=$(RuntimeIdentifier) /p:PublishDir=&quot;$(WpfPublishDirectory)&quot; /p:UseAppHost=true" />
+    <ItemGroup>
+      <WpfPublishArtifact Include="$(WpfPublishDirectory)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WpfPublishArtifact)"
+          DestinationFiles="@(WpfPublishArtifact->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>
