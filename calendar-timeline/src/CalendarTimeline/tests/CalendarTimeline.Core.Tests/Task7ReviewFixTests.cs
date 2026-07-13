@@ -188,12 +188,27 @@ public sealed class Task7ReviewFixTests
     public void SnapbarSourceSeparatesManualHeightFromAutomaticLaneHeight()
     {
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var sizeChanged = source[
+            source.IndexOf("private void OnSizeChanged", StringComparison.Ordinal)..
+            source.IndexOf("private void OnLocationChanged", StringComparison.Ordinal)];
+        var updateWindowHeight = source[
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)..
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)];
 
         Assert.Contains("private double manualWindowHeight;", source);
         Assert.Contains("private bool isUpdatingWindowHeight;", source);
-        Assert.Contains("if (!isUpdatingWindowHeight)", source);
-        Assert.Contains("manualWindowHeight = Math.Max(MinHeight, Height);", source);
+        Assert.Contains("if (!isUpdatingWindowHeight)", sizeChanged);
+        Assert.Contains("manualWindowHeight = Math.Max(MinHeight, Height);", sizeChanged);
         Assert.Contains("TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight)", source);
+        Assert.True(
+            IndexOf(updateWindowHeight, "isUpdatingWindowHeight = true;")
+            < IndexOf(updateWindowHeight, "MinHeight = minimumWindowHeight;"));
+        Assert.True(
+            IndexOf(updateWindowHeight, "MinHeight = minimumWindowHeight;")
+            < IndexOf(updateWindowHeight, "Height = targetHeight;"));
+        Assert.True(
+            IndexOf(updateWindowHeight, "Height = targetHeight;")
+            < IndexOf(updateWindowHeight, "isUpdatingWindowHeight = false;"));
     }
 
     [Fact]

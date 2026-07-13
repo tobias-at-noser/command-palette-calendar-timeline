@@ -368,16 +368,17 @@ public partial class MainWindow : Window
         var requiredHeight = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
             + (hasStatus ? StatusRowHeight : 0);
         minimumWindowHeight = requiredHeight;
-        MinHeight = minimumWindowHeight;
         var targetHeight = TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight);
-        if (Height == targetHeight)
-        {
-            return;
-        }
 
         try
         {
             isUpdatingWindowHeight = true;
+            MinHeight = minimumWindowHeight;
+            if (Height == targetHeight)
+            {
+                return;
+            }
+
             Height = targetHeight;
         }
         finally
