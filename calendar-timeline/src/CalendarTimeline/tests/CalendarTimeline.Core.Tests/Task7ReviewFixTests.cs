@@ -212,6 +212,25 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void SnapbarSourceUsesRestoredHeightAsTheManualFloorBeforeAutomaticLayoutUpdates()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var restoreWindowSettings = source[
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)..
+            source.IndexOf("private void PersistWindowSettings", StringComparison.Ordinal)];
+        var constructor = source[
+            source.IndexOf("public MainWindow(TimelineSnapbarViewModel viewModel)", StringComparison.Ordinal)..
+            source.IndexOf("private async void OnLoaded", StringComparison.Ordinal)];
+
+        Assert.True(
+            IndexOf(restoreWindowSettings, "Height = settings.Height;")
+            < IndexOf(restoreWindowSettings, "manualWindowHeight = Math.Max(MinHeight, Height);"));
+        Assert.True(
+            IndexOf(constructor, "RestoreWindowSettings();")
+            < IndexOf(constructor, "SizeChanged += OnSizeChanged;"));
+    }
+
+    [Fact]
     public void SnapbarSourceRendersPolishedBlocksAndNowIndicators()
     {
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));

@@ -401,6 +401,7 @@ public partial class MainWindow : Window
 
         Width = settings.Width;
         Height = settings.Height;
+        manualWindowHeight = Math.Max(MinHeight, Height);
         Left = settings.Left;
         Top = settings.Top;
     }
