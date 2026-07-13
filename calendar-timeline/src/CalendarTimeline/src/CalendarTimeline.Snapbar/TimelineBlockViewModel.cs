@@ -14,7 +14,9 @@ public sealed class TimelineBlockViewModel
         double startRatio,
         double widthRatio,
         bool isRunning,
-        string? teamsUrl)
+        string? teamsUrl,
+        DateTimeOffset start,
+        DateTimeOffset end)
     {
         Title = title;
         Subtitle = subtitle;
@@ -28,6 +30,8 @@ public sealed class TimelineBlockViewModel
         WidthRatio = widthRatio;
         IsRunning = isRunning;
         TeamsUrl = teamsUrl;
+        Start = start;
+        End = end;
     }
 
     public string Title { get; }
@@ -53,6 +57,10 @@ public sealed class TimelineBlockViewModel
     public bool IsRunning { get; }
 
     public string? TeamsUrl { get; }
+
+    public DateTimeOffset Start { get; }
+
+    public DateTimeOffset End { get; }
 
     public bool HasTeamsUrl => !string.IsNullOrWhiteSpace(TeamsUrl);
 }

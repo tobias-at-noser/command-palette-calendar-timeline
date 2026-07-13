@@ -175,15 +175,42 @@ public sealed class Task7ReviewFixTests
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
         var nowLine = xaml[xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal), StringComparison.Ordinal)];
-        var titleTextBlock = source[source.IndexOf("Text = block.Title,", StringComparison.Ordinal)..source.IndexOf("},", source.IndexOf("Text = block.Title,", StringComparison.Ordinal), StringComparison.Ordinal)];
-        var timeTextBlock = source[source.IndexOf("Text = block.StartTime,", StringComparison.Ordinal)..source.IndexOf("},", source.IndexOf("Text = block.StartTime,", StringComparison.Ordinal), StringComparison.Ordinal)];
 
         Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
         Assert.Contains("IsHitTestVisible=\"False\"", nowLine);
-        Assert.Contains("Foreground = foreground,", titleTextBlock);
-        Assert.Contains("Foreground = foreground,", timeTextBlock);
-        Assert.DoesNotContain("Opacity", timeTextBlock);
+        Assert.Contains("Text = block.StartTime + \" · \"", source);
+        Assert.Contains("Text = block.Title,", source);
+        Assert.Contains("TextTrimming = TextTrimming.CharacterEllipsis", source);
         Assert.Contains("CreateBubbleFill(colors.LightFill, colors.DarkFill)", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceSeparatesManualHeightFromAutomaticLaneHeight()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+
+        Assert.Contains("private double manualWindowHeight;", source);
+        Assert.Contains("private bool isUpdatingWindowHeight;", source);
+        Assert.Contains("if (!isUpdatingWindowHeight)", source);
+        Assert.Contains("manualWindowHeight = Math.Max(MinHeight, Height);", source);
+        Assert.Contains("TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight)", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceRendersPolishedBlocksAndNowIndicators()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+
+        Assert.Contains("<Canvas.OpacityMask>", xaml);
+        Assert.Contains("x:Key=\"TimelineBlockButtonStyle\"", xaml);
+        Assert.Contains("CornerRadius=\"5\"", xaml);
+        Assert.Contains("x:Name=\"NowTimeTextBlock\"", xaml);
+        Assert.Contains("x:Name=\"CountdownTextBlock\"", xaml);
+        Assert.Contains("Style = (Style)FindResource(\"TimelineBlockButtonStyle\")", source);
+        Assert.Contains("Text = block.StartTime + \" · \"", source);
+        Assert.Contains("TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks)", source);
+        Assert.Contains("TimelineTimeDisplay.GetDateTooltip(now)", source);
     }
 
     private static int IndexOf(string source, string value)

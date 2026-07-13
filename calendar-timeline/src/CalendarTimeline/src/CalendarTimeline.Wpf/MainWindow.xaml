@@ -6,11 +6,45 @@
           Height="48"
           Width="400"
           WindowStyle="None"
-          ResizeMode="CanResize"
-          Topmost="True"
-          ShowInTaskbar="False"
-          AllowsTransparency="True"
-          Background="Transparent">
+           ResizeMode="CanResize"
+           Topmost="True"
+           ShowInTaskbar="False"
+           AllowsTransparency="True"
+           Background="Transparent">
+    <Window.Resources>
+      <Style x:Key="TimelineBlockButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Grid>
+                <ContentPresenter />
+                <Border x:Name="InteractionHighlight"
+                        CornerRadius="5"
+                        BorderThickness="1"
+                        BorderBrush="Transparent"
+                        Background="Transparent"
+                        IsHitTestVisible="False" />
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="InteractionHighlight" Property="Background" Value="#24FFFFFF" />
+                  <Setter TargetName="InteractionHighlight" Property="BorderBrush" Value="#88FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                  <Setter TargetName="InteractionHighlight" Property="Background" Value="#40FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                  <Setter TargetName="InteractionHighlight" Property="BorderBrush" Value="#CCFFFFFF" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </Window.Resources>
     <Grid x:Name="RootGrid"
           Background="#01000000"
         MouseEnter="OnRootMouseEnter"
@@ -55,9 +89,36 @@
                  IsHitTestVisible="False">
           <Border.Effect>
             <DropShadowEffect Color="#80000000" ShadowDepth="0" BlurRadius="2" Opacity="0.55" />
-          </Border.Effect>
+           </Border.Effect>
+         </Border>
+        <Border x:Name="NowTimeIndicator"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Padding="4,1"
+                Background="#B01B2635"
+                CornerRadius="3"
+                Panel.ZIndex="4">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock x:Name="NowTimeTextBlock"
+                       Foreground="White"
+                       FontSize="10"
+                       FontWeight="SemiBold" />
+            <TextBlock x:Name="CountdownTextBlock"
+                       Margin="4,0,0,0"
+                       Foreground="#DFFFFFFF"
+                       FontSize="10" />
+          </StackPanel>
         </Border>
-       <Canvas x:Name="BlocksCanvas" Panel.ZIndex="2" />
+        <Canvas x:Name="BlocksCanvas" Panel.ZIndex="2">
+          <Canvas.OpacityMask>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+              <GradientStop Color="#00FFFFFF" Offset="0" />
+              <GradientStop Color="#FFFFFFFF" Offset="0.12" />
+              <GradientStop Color="#FFFFFFFF" Offset="0.88" />
+              <GradientStop Color="#00FFFFFF" Offset="1" />
+            </LinearGradientBrush>
+          </Canvas.OpacityMask>
+        </Canvas>
       </Grid>
 
       <TextBlock x:Name="StatusTextBlock"

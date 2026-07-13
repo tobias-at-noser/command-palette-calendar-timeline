@@ -42,7 +42,9 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
     private bool refreshInProgress;
     private bool isUpdatingLayout;
+    private bool isUpdatingWindowHeight;
     private double minimumWindowHeight;
+    private double manualWindowHeight;
     private HwndSource? hwndSource;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -112,6 +114,7 @@ public partial class MainWindow : Window
         Width = SnapbarWindowSettings.DefaultWidth;
         Left = 0;
         Top = 0;
+        manualWindowHeight = Height;
         UpdateWindowHeight();
         RestoreWindowSettings();
 
@@ -262,6 +265,11 @@ public partial class MainWindow : Window
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        if (!isUpdatingWindowHeight)
+        {
+            manualWindowHeight = Math.Max(MinHeight, Height);
+        }
+
         TryUpdateLayoutMetrics();
         PersistWindowSettings();
     }
@@ -320,6 +328,17 @@ public partial class MainWindow : Window
             nowLineBounds.Top,
             0,
             0);
+        var now = DateTimeOffset.Now;
+        NowTimeTextBlock.Text = now.ToString("HH:mm");
+        NowTimeIndicator.ToolTip = TimelineTimeDisplay.GetDateTooltip(now);
+        NowTimeIndicator.Margin = new Thickness(
+            timelineWidth * TimelineSnapbarLayout.NowRatio + 4,
+            4,
+            0,
+            0);
+        var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);
+        CountdownTextBlock.Text = countdown ?? string.Empty;
+        CountdownTextBlock.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 
@@ -344,8 +363,22 @@ public partial class MainWindow : Window
         var requiredHeight = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
             + (hasStatus ? StatusRowHeight : 0);
         minimumWindowHeight = requiredHeight;
-        Height = TimelineSnapbarLayout.GetWindowHeight(Height, requiredHeight);
         MinHeight = minimumWindowHeight;
+        var targetHeight = TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight);
+        if (Height == targetHeight)
+        {
+            return;
+        }
+
+        try
+        {
+            isUpdatingWindowHeight = true;
+            Height = targetHeight;
+        }
+        finally
+        {
+            isUpdatingWindowHeight = false;
+        }
     }
 
     private void RestoreWindowSettings()
@@ -461,7 +494,7 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private static Button CreateBlockButton(TimelineBlockViewModel block, double width)
+    private Button CreateBlockButton(TimelineBlockViewModel block, double width)
     {
         var colors = TimelineBubbleColors.Resolve(
             block.CategoryColors,
@@ -477,6 +510,7 @@ public partial class MainWindow : Window
             VerticalContentAlignment = VerticalAlignment.Stretch,
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
+            Style = (Style)FindResource("TimelineBlockButtonStyle"),
             ToolTip = new TextBlock
             {
                 Text = block.Tooltip,
@@ -500,27 +534,35 @@ public partial class MainWindow : Window
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(8, 3, 8, 3),
             Effect = CreateBubbleShadow(block.IsRunning),
-            Child = new StackPanel
+            Child = CreateBubbleLabel(block, foreground),
+        };
+    }
+
+    private static DockPanel CreateBubbleLabel(TimelineBlockViewModel block, Brush foreground)
+    {
+        var timeText = new TextBlock
+        {
+            Text = block.StartTime + " · ",
+            Foreground = foreground,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.NoWrap,
+        };
+        DockPanel.SetDock(timeText, Dock.Left);
+
+        return new DockPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            LastChildFill = true,
+            Children =
             {
-                VerticalAlignment = VerticalAlignment.Center,
-                Children =
+                timeText,
+                new TextBlock
                 {
-                    new TextBlock
-                    {
-                        Text = block.Title,
-                        Foreground = foreground,
-                        FontWeight = FontWeights.SemiBold,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        TextWrapping = TextWrapping.NoWrap,
-                    },
-                    new TextBlock
-                    {
-                        Text = block.StartTime,
-                        Foreground = foreground,
-                        FontSize = 10,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        TextWrapping = TextWrapping.NoWrap,
-                    },
+                    Text = block.Title,
+                    Foreground = foreground,
+                    FontWeight = FontWeights.SemiBold,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    TextWrapping = TextWrapping.NoWrap,
                 },
             },
         };

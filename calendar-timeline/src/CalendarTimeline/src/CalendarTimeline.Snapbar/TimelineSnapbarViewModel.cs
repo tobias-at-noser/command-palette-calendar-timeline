@@ -89,7 +89,9 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
                     block.StartRatio,
                     Math.Max(0, block.EndRatio - block.StartRatio),
                     block.IsRunning,
-                    block.Appointment.TeamsUrl))
+                    block.Appointment.TeamsUrl,
+                    block.Appointment.Start,
+                    block.Appointment.End))
                 .ToArray();
 
             ApplyRefreshResult(projectedBlocks, snapshot.StatusMessage ?? string.Empty);
