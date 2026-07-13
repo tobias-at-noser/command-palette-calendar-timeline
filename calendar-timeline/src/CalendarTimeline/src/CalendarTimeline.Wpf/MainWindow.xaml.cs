@@ -332,13 +332,18 @@ public partial class MainWindow : Window
         NowTimeTextBlock.Text = now.ToString("HH:mm");
         NowTimeIndicator.ToolTip = TimelineTimeDisplay.GetDateTooltip(now);
         NowTimeIndicator.Margin = new Thickness(
+            0,
+            0,
+            timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4,
+            timelineHeight - nowLineBounds.Bottom);
+        CountdownIndicator.Margin = new Thickness(
             timelineWidth * TimelineSnapbarLayout.NowRatio + 4,
-            4,
+            0,
             0,
             0);
         var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);
         CountdownTextBlock.Text = countdown ?? string.Empty;
-        CountdownTextBlock.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
+        CountdownIndicator.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 

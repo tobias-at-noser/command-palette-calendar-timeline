@@ -90,24 +90,29 @@
           <Border.Effect>
             <DropShadowEffect Color="#80000000" ShadowDepth="0" BlurRadius="2" Opacity="0.55" />
            </Border.Effect>
-         </Border>
+        </Border>
         <Border x:Name="NowTimeIndicator"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
                 Padding="4,1"
                 Background="#B01B2635"
                 CornerRadius="3"
                 Panel.ZIndex="4">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock x:Name="NowTimeTextBlock"
-                       Foreground="White"
-                       FontSize="10"
-                       FontWeight="SemiBold" />
-            <TextBlock x:Name="CountdownTextBlock"
-                       Margin="4,0,0,0"
-                       Foreground="#DFFFFFFF"
-                       FontSize="10" />
-          </StackPanel>
+          <TextBlock x:Name="NowTimeTextBlock"
+                     Foreground="White"
+                     FontSize="10"
+                     FontWeight="SemiBold" />
+        </Border>
+        <Border x:Name="CountdownIndicator"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Padding="4,1"
+                Background="#B01B2635"
+                CornerRadius="3"
+                Panel.ZIndex="4">
+          <TextBlock x:Name="CountdownTextBlock"
+                     Foreground="#DFFFFFFF"
+                     FontSize="10" />
         </Border>
         <Canvas x:Name="BlocksCanvas" Panel.ZIndex="2">
           <Canvas.OpacityMask>

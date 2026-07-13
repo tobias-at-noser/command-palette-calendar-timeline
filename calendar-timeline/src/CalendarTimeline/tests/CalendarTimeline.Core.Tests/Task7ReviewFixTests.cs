@@ -213,6 +213,29 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("TimelineTimeDisplay.GetDateTooltip(now)", source);
     }
 
+    [Fact]
+    public void SnapbarSourceKeepsTimelineFadesFixedAndSeparatesTimeIndicators()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var blocksCanvas = xaml[xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal)..];
+        var nowTime = xaml[xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var countdown = xaml[xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+
+        Assert.Contains("<Canvas.OpacityMask>", blocksCanvas);
+        Assert.Contains("Offset=\"0\"", blocksCanvas);
+        Assert.Contains("Offset=\"0.12\"", blocksCanvas);
+        Assert.Contains("Offset=\"0.88\"", blocksCanvas);
+        Assert.Contains("Offset=\"1\"", blocksCanvas);
+        Assert.Contains("HorizontalAlignment=\"Right\"", nowTime);
+        Assert.Contains("VerticalAlignment=\"Bottom\"", nowTime);
+        Assert.Contains("HorizontalAlignment=\"Left\"", countdown);
+        Assert.Contains("VerticalAlignment=\"Center\"", countdown);
+        Assert.Contains("timelineHeight - nowLineBounds.Bottom", source);
+        Assert.Contains("timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4", source);
+        Assert.Contains("CountdownIndicator.Margin", source);
+    }
+
     private static int IndexOf(string source, string value)
     {
         return IndexOf(source, value, 0);
