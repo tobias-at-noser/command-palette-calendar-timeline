@@ -191,46 +191,57 @@ public sealed class OutlookCalendarSnapshotSource : ICalendarSnapshotSource
             var filter = $"[End] > '{window.Start.LocalDateTime:g}' AND [Start] < '{window.End.LocalDateTime:g}'";
             restrictedItems = outlookItems.Restrict(filter);
             var appointments = new List<OutlookAppointmentData>();
-            var count = Convert.ToInt32(((dynamic)restrictedItems).Count);
+            object? item = null;
 
-            for (var index = 1; index <= count; index++)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                object? item = null;
-                try
+                item = ((dynamic)restrictedItems).GetFirst();
+
+                while (item is not null)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    item = ((dynamic)restrictedItems).Item(index);
-                    dynamic appointment = item;
-                    DateTime start = appointment.Start;
-                    DateTime end = appointment.End;
-                    var sensitivity = Convert.ToInt32(appointment.Sensitivity);
-                    appointments.Add(new OutlookAppointmentData(
-                        Convert.ToString(appointment.EntryID) ?? Guid.NewGuid().ToString("N"),
-                        Convert.ToString(appointment.Subject) ?? string.Empty,
-                        Convert.ToString(appointment.Location) ?? string.Empty,
-                        new DateTimeOffset(start),
-                        new DateTimeOffset(end),
-                        sensitivity == 2,
-                        sensitivity == 3,
-                        Convert.ToString(appointment.Body),
-                        calendarId,
-                        calendarName,
-                        calendarColor,
-                        LoadCategories(appointment, outlookNamespace)));
+                    try
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        dynamic appointment = item;
+                        DateTime start = appointment.Start;
+                        DateTime end = appointment.End;
+                        var sensitivity = Convert.ToInt32(appointment.Sensitivity);
+                        appointments.Add(new OutlookAppointmentData(
+                            Convert.ToString(appointment.EntryID) ?? Guid.NewGuid().ToString("N"),
+                            Convert.ToString(appointment.Subject) ?? string.Empty,
+                            Convert.ToString(appointment.Location) ?? string.Empty,
+                            new DateTimeOffset(start),
+                            new DateTimeOffset(end),
+                            sensitivity == 2,
+                            sensitivity == 3,
+                            Convert.ToString(appointment.Body),
+                            calendarId,
+                            calendarName,
+                            calendarColor,
+                            LoadCategories(appointment, outlookNamespace)));
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        // A malformed or inaccessible item must not make its calendar unreadable.
+                    }
+                    finally
+                    {
+                        ReleaseComObject(item);
+                        item = null;
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    item = ((dynamic)restrictedItems).GetNext();
                 }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch
-                {
-                    // A malformed or inaccessible item must not make its calendar unreadable.
-                }
-                finally
-                {
-                    ReleaseComObject(item);
-                }
+            }
+            finally
+            {
+                ReleaseComObject(item);
             }
 
             return appointments;

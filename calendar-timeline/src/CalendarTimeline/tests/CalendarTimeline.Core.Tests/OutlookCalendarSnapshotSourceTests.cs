@@ -91,6 +91,29 @@ public sealed class OutlookCalendarSnapshotSourceTests
     }
 
     [Fact]
+    public void OutlookSourceIteratesRecurringRestrictedItemsWithoutUsingUndefinedCount()
+    {
+        var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));
+
+        Assert.DoesNotContain("((dynamic)restrictedItems).Count", source);
+        Assert.Contains("((dynamic)restrictedItems).GetFirst()", source);
+        Assert.Contains("((dynamic)restrictedItems).GetNext()", source);
+    }
+
+    [Fact]
+    public void OutlookSourceReleasesCurrentRecurringItemWhenCancellationIsRequested()
+    {
+        var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));
+
+        Assert.Contains(
+            "object? item = null;\n\n            try\n            {\n                item = ((dynamic)restrictedItems).GetFirst();",
+            source);
+        Assert.Contains(
+            "finally\n            {\n                ReleaseComObject(item);\n            }\n\n            return appointments;",
+            source);
+    }
+
+    [Fact]
     public void OutlookSourceTransfersFolderOwnershipOnlyAfterCalendarIdentification()
     {
         var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));
@@ -140,7 +163,7 @@ public sealed class OutlookCalendarSnapshotSourceTests
             "foreach (var calendarFolder in calendarFolders)\n                {\n                    cancellationToken.ThrowIfCancellationRequested();\n                    try",
             source);
         Assert.Contains(
-            "for (var index = 1; index <= count; index++)\n            {\n                cancellationToken.ThrowIfCancellationRequested();\n                object? item = null;",
+            "while (item is not null)\n                {\n                    cancellationToken.ThrowIfCancellationRequested();\n                    try",
             source);
         Assert.True(
             CountOccurrences(source, "cancellationToken.ThrowIfCancellationRequested();") >= 5,
