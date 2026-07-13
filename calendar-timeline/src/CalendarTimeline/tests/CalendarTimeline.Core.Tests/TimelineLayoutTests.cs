@@ -30,6 +30,20 @@ public sealed class TimelineLayoutTests
         Assert.Equal([0, 1, 0], blocks.Select(block => block.Lane));
     }
 
+    [Fact]
+    public void ArrangeOrdersTiedAppointmentsByEndThenOrdinalId()
+    {
+        var start = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
+        var sameStartIdB = CreateAppointment("b", start, start.AddMinutes(30));
+        var sameStartIdA = CreateAppointment("a", start, start.AddMinutes(30));
+        var laterEnd = CreateAppointment("c", start, start.AddMinutes(45));
+
+        var blocks = TimelineLayout.Arrange([sameStartIdB, laterEnd, sameStartIdA]);
+
+        Assert.Equal(["a", "b", "c"], blocks.Select(block => block.Appointment.Id));
+        Assert.Equal([0, 1, 2], blocks.Select(block => block.Lane));
+    }
+
     private static Appointment CreateAppointment(string id, DateTimeOffset start, DateTimeOffset end)
     {
         return new Appointment(id, $"Appointment {id}", "Room", start, end, false, false, null);

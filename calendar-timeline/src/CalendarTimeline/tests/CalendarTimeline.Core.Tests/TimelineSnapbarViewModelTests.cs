@@ -169,12 +169,20 @@ public sealed class TimelineSnapbarViewModelTests
         var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
         var viewModel = new TimelineSnapbarViewModel(new StubSnapbarSnapshotClient(
             new CalendarSnapshot(now, now.AddMinutes(-30), now.AddHours(4),
-                [new Appointment("1", "Planning", "Room 42", now, now.AddMinutes(30), false, false, null)], null)));
+                [new Appointment(
+                    "1", "Planning", "Room 42", now, now.AddMinutes(30), false, false, null,
+                    "work", "Arbeit", "#3B82B6",
+                    [new CalendarCategory("Fokus", "#D83B01"), new CalendarCategory("Kunde", "#8764B8")])], null)));
 
         await viewModel.RefreshAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("Planning", Assert.Single(viewModel.Blocks).Title);
-        Assert.Equal("10:00–10:30 · Room 42", viewModel.Blocks.Single().Subtitle);
+        var block = Assert.Single(viewModel.Blocks);
+        Assert.Equal("Planning", block.Title);
+        Assert.Equal("10:00", block.StartTime);
+        Assert.Equal("10:00–10:30 · Room 42 · Arbeit · Fokus, Kunde", block.Tooltip);
+        Assert.Equal("work", block.CalendarIdentity);
+        Assert.Equal("#3B82B6", block.CalendarColor);
+        Assert.Equal(["#D83B01", "#8764B8"], block.CategoryColors);
     }
 
     [Fact]
@@ -187,13 +195,18 @@ public sealed class TimelineSnapbarViewModelTests
             .ToArray();
 
         Assert.Equal([
+            "CalendarColor",
+            "CalendarIdentity",
+            "CategoryColors",
             "HasTeamsUrl",
             "IsRunning",
             "Lane",
             "StartRatio",
+            "StartTime",
             "Subtitle",
             "TeamsUrl",
             "Title",
+            "Tooltip",
             "WidthRatio",
         ], propertyNames);
     }

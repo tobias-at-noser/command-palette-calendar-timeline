@@ -18,7 +18,11 @@ public sealed class FakeHostSnapshotSource : IHostSnapshotSource
                 now.AddMinutes(20),
                 false,
                 false,
-                TeamsLinkDetector.TryFind("https://teams.microsoft.com/l/meetup-join/fake"))),
+                TeamsLinkDetector.TryFind("https://teams.microsoft.com/l/meetup-join/fake"),
+                "fake-work",
+                "Arbeit",
+                "#3B82B6",
+                [new CalendarCategory("Fokus", "#D83B01")])),
             AppointmentSanitizer.Sanitize(new Appointment(
                 "fake-next",
                 "Projekt Sync",

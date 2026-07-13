@@ -80,6 +80,11 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
                 .Select(block => new TimelineBlockViewModel(
                     block.DisplayTitle,
                     block.DisplaySubtitle,
+                    block.DisplayStartTime,
+                    block.DisplaySubtitle,
+                    block.Appointment.CalendarId,
+                    block.CalendarColor,
+                    block.CategoryColors,
                     block.Lane,
                     block.StartRatio,
                     Math.Max(0, block.EndRatio - block.StartRatio),

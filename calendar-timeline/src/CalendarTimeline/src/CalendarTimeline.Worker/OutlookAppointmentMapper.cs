@@ -4,7 +4,10 @@ namespace CalendarTimeline.Worker;
 
 public static class OutlookAppointmentMapper
 {
-    public static CalendarSnapshot CreateSnapshot(DateTimeOffset now, IEnumerable<OutlookAppointmentData> appointments)
+    public static CalendarSnapshot CreateSnapshot(
+        DateTimeOffset now,
+        IEnumerable<OutlookAppointmentData> appointments,
+        string? statusMessage = null)
     {
         var window = CalendarWindow.Create(now);
         var mappedAppointments = appointments
@@ -19,7 +22,11 @@ public static class OutlookAppointmentMapper
                 appointment.End,
                 appointment.IsPrivate,
                 appointment.IsConfidential,
-                TeamsLinkDetector.TryFind(appointment.Body))))
+                TeamsLinkDetector.TryFind(appointment.Body),
+                appointment.CalendarId,
+                appointment.CalendarName,
+                appointment.CalendarColor,
+                appointment.Categories ?? [])))
             .ToArray();
 
         return new CalendarSnapshot(
@@ -27,6 +34,6 @@ public static class OutlookAppointmentMapper
             window.Start,
             window.End,
             mappedAppointments,
-            null);
+            statusMessage);
     }
 }

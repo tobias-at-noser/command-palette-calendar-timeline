@@ -7,6 +7,7 @@ public static class TimelineLayout
         var ordered = appointments
             .OrderBy(appointment => appointment.Start)
             .ThenBy(appointment => appointment.End)
+            .ThenBy(appointment => appointment.Id, StringComparer.Ordinal)
             .ToList();
         var laneEnds = new List<DateTimeOffset>();
         var blocks = new List<TimelineBlock>();

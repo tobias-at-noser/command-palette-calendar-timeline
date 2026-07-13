@@ -169,6 +169,23 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("UpdateWindowHeight();", failureHandler);
     }
 
+    [Fact]
+    public void SnapbarSourcePreservesNowLineAndBubbleTextStructuralInvariants()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var nowLine = xaml[xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var titleTextBlock = source[source.IndexOf("Text = block.Title,", StringComparison.Ordinal)..source.IndexOf("},", source.IndexOf("Text = block.Title,", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var timeTextBlock = source[source.IndexOf("Text = block.StartTime,", StringComparison.Ordinal)..source.IndexOf("},", source.IndexOf("Text = block.StartTime,", StringComparison.Ordinal), StringComparison.Ordinal)];
+
+        Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
+        Assert.Contains("IsHitTestVisible=\"False\"", nowLine);
+        Assert.Contains("Foreground = foreground,", titleTextBlock);
+        Assert.Contains("Foreground = foreground,", timeTextBlock);
+        Assert.DoesNotContain("Opacity", timeTextBlock);
+        Assert.Contains("CreateBubbleFill(colors.LightFill, colors.DarkFill)", source);
+    }
+
     private static int IndexOf(string source, string value)
     {
         return IndexOf(source, value, 0);

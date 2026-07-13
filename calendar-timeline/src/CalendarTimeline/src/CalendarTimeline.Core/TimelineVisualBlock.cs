@@ -7,4 +7,7 @@ public sealed record TimelineVisualBlock(
     double EndRatio,
     bool IsRunning,
     string DisplayTitle,
-    string DisplaySubtitle);
+    string DisplayStartTime,
+    string DisplaySubtitle,
+    string? CalendarColor,
+    IReadOnlyList<string?> CategoryColors);

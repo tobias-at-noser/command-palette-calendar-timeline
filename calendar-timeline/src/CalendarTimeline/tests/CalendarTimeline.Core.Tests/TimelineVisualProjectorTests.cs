@@ -63,6 +63,27 @@ public sealed class TimelineVisualProjectorTests
         Assert.Equal("09:30–10:00 · Room 42", block.DisplaySubtitle);
     }
 
+    [Fact]
+    public void Project_AppendsCalendarAndCategoriesToTooltipAndProjectsRawColors()
+    {
+        var now = new DateTimeOffset(2026, 7, 9, 10, 0, 0, TimeSpan.Zero);
+        var snapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [new Appointment(
+                "1", "Planning", "Room 42", now, now.AddMinutes(30), false, false, null,
+                "work", "Arbeit", "#3B82B6",
+                [new CalendarCategory("Fokus", "#D83B01"), new CalendarCategory("Kunde", "#8764B8")])],
+            null);
+
+        var block = Assert.Single(TimelineVisualProjector.Project(snapshot));
+
+        Assert.Equal("10:00–10:30 · Room 42 · Arbeit · Fokus, Kunde", block.DisplaySubtitle);
+        Assert.Equal("#3B82B6", block.CalendarColor);
+        Assert.Equal(["#D83B01", "#8764B8"], block.CategoryColors);
+    }
+
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -73,7 +94,9 @@ public sealed class TimelineVisualProjectorTests
             now,
             now.AddMinutes(-30),
             now.AddHours(1),
-            [new Appointment("private", "Board Review", "Raum 1", now, now.AddMinutes(30), isPrivate, isConfidential, null)],
+            [new Appointment(
+                "private", "Board Review", "Raum 1", now, now.AddMinutes(30), isPrivate, isConfidential, null,
+                "private-calendar", "Privat", "#3B82B6", [new CalendarCategory("Finance", "#FF0000")])],
             null);
 
         var blocks = TimelineVisualProjector.Project(snapshot);
@@ -82,5 +105,8 @@ public sealed class TimelineVisualProjectorTests
         Assert.DoesNotContain("Board Review", blocks[0].DisplayTitle);
         Assert.Equal("Privater Termin", blocks[0].DisplayTitle);
         Assert.DoesNotContain("Raum 1", blocks[0].DisplaySubtitle);
+        Assert.DoesNotContain("Finance", blocks[0].DisplaySubtitle);
+        Assert.Equal(["12:00–12:30", "Privat"], blocks[0].DisplaySubtitle.Split(" · "));
+        Assert.Empty(blocks[0].CategoryColors);
     }
 }

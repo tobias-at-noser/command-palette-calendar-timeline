@@ -47,6 +47,12 @@ The graphical timeline lives in the WPF app, not in the Dock.
 - can be moved by dragging free timeline space and resized from any edge or corner
 - preserves its size and position in `%LocalAppData%/CalendarTimeline/snapbar-window.json`
 - grows downward when additional timeline lanes are needed
+- reads appointments from every personal calendar folder recursively within the configured default personal Outlook data store; when an identified calendar cannot be read, the remaining calendars stay available and a status hint is shown
+- removes category metadata from private and confidential appointments before projection, while retaining calendar identity and color
+- assigns deterministic zero-based lanes: lane 0 is topmost, later lanes stack below, and the rail plus current-time marker remain centered on and limited to lane 0
+- renders two-line compact bubbles with independently ellipsized title and start-time lines
+- uses the first valid Outlook category color for the bubble fill and the calendar color for the whole-bubble border; without a valid category the calendar color fills the bubble with a contrasting border, and missing colors use a fixed accessible stable palette derived from calendar identity
+- keeps a subtle vertical bubble gradient while choosing opaque text colors that meet contrast requirements at both gradient endpoints
 - renders timeline lanes and meeting blocks from shared Core projections
 - shows a semi-transparent milky-white panel with a thin border on hover
 - renders a 2 px white now-line with a subtle shadow

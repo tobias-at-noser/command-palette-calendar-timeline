@@ -18,7 +18,10 @@ public static class TimelineVisualProjector
                 CalculateRatio(snapshot.WindowStart, windowDuration, appointment.End),
                 appointment.Start <= snapshot.GeneratedAt && appointment.End > snapshot.GeneratedAt,
                 appointment.Title,
-                BuildSubtitle(appointment)));
+                CalendarTextFormatter.FormatTimeRange(appointment.Start, appointment.End).Split('–')[0],
+                BuildSubtitle(appointment),
+                appointment.CalendarColor,
+                appointment.Categories.Select(category => category.Color).ToArray()));
         }
 
         return blocks;
@@ -45,6 +48,20 @@ public static class TimelineVisualProjector
         if (!string.IsNullOrWhiteSpace(appointment.Location))
         {
             parts.Add(appointment.Location);
+        }
+
+        if (!string.IsNullOrWhiteSpace(appointment.CalendarName))
+        {
+            parts.Add(appointment.CalendarName);
+        }
+
+        var categoryNames = appointment.Categories
+            .Select(category => category.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name));
+        var categories = string.Join(", ", categoryNames);
+        if (!string.IsNullOrWhiteSpace(categories))
+        {
+            parts.Add(categories);
         }
 
         return string.Join(" · ", parts);

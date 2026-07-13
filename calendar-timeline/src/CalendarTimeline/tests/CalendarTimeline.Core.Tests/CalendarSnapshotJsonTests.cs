@@ -38,6 +38,30 @@ public sealed class CalendarSnapshotJsonTests
         Assert.Equal("https://teams.microsoft.com/l/meetup-join/fake", roundTripped.Appointments[0].TeamsUrl);
     }
 
+    [Fact]
+    public void DeserializeRoundTripsCalendarAndCategoryMetadata()
+    {
+        var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
+        var snapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [new Appointment(
+                "1", "Termin", "Raum", now, now.AddMinutes(30), false, false, null,
+                "calendar-id", "Team", "#4B79A1", [new CalendarCategory("Finance", "#FF0000")])],
+            null);
+
+        var roundTripped = CalendarSnapshotJson.Deserialize(CalendarSnapshotJson.Serialize(snapshot));
+        var appointment = Assert.Single(roundTripped.Appointments);
+
+        Assert.Equal("calendar-id", appointment.CalendarId);
+        Assert.Equal("Team", appointment.CalendarName);
+        Assert.Equal("#4B79A1", appointment.CalendarColor);
+        var category = Assert.Single(appointment.Categories);
+        Assert.Equal("Finance", category.Name);
+        Assert.Equal("#FF0000", category.Color);
+    }
+
     private static CalendarSnapshot CreateSnapshot(string? statusMessage)
     {
         var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);

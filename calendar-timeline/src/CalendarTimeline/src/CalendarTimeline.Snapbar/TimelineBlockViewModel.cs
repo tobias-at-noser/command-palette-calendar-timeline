@@ -5,6 +5,11 @@ public sealed class TimelineBlockViewModel
     public TimelineBlockViewModel(
         string title,
         string subtitle,
+        string startTime,
+        string tooltip,
+        string calendarIdentity,
+        string? calendarColor,
+        IReadOnlyList<string?> categoryColors,
         int lane,
         double startRatio,
         double widthRatio,
@@ -13,6 +18,11 @@ public sealed class TimelineBlockViewModel
     {
         Title = title;
         Subtitle = subtitle;
+        StartTime = startTime;
+        Tooltip = tooltip;
+        CalendarIdentity = calendarIdentity;
+        CalendarColor = calendarColor;
+        CategoryColors = categoryColors;
         Lane = lane;
         StartRatio = startRatio;
         WidthRatio = widthRatio;
@@ -23,6 +33,16 @@ public sealed class TimelineBlockViewModel
     public string Title { get; }
 
     public string Subtitle { get; }
+
+    public string StartTime { get; }
+
+    public string Tooltip { get; }
+
+    public string CalendarIdentity { get; }
+
+    public string? CalendarColor { get; }
+
+    public IReadOnlyList<string?> CategoryColors { get; }
 
     public int Lane { get; }
 

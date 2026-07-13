@@ -31,6 +31,22 @@ public sealed class AppointmentSanitizerTests
         Assert.Equal(appointment.End, sanitized.End);
     }
 
+    [Fact]
+    public void SanitizeClearsCategoriesButRetainsCalendarMetadataForProtectedAppointments()
+    {
+        var start = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
+        var appointment = new Appointment(
+            "private", "Budget", "Room", start, start.AddMinutes(30), true, false, null,
+            "calendar-id", "Team", "#4B79A1", [new CalendarCategory("Finance", "#FF0000")]);
+
+        var sanitized = AppointmentSanitizer.Sanitize(appointment);
+
+        Assert.Empty(sanitized.Categories);
+        Assert.Equal("calendar-id", sanitized.CalendarId);
+        Assert.Equal("Team", sanitized.CalendarName);
+        Assert.Equal("#4B79A1", sanitized.CalendarColor);
+    }
+
     private static Appointment CreateAppointment(bool isPrivate, bool isConfidential)
     {
         var start = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);

@@ -13,7 +13,8 @@ public static class AppointmentSanitizer
         {
             Title = "Privater Termin",
             Location = string.Empty,
-            TeamsUrl = null
+            TeamsUrl = null,
+            Categories = []
         };
     }
 }

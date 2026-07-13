@@ -87,4 +87,55 @@ public sealed class OutlookAppointmentMapperTests
 
         Assert.Equal(new[] { "starts-before", "ends-after" }, snapshot.Appointments.Select(appointment => appointment.Id));
     }
+
+    [Fact]
+    public void CreateSnapshotPreservesCalendarMetadataAndCategoryOrderWithPartialSuccessStatus()
+    {
+        var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
+        var rawAppointments = new[]
+        {
+            new OutlookAppointmentData(
+                "second",
+                "Second",
+                "",
+                now.AddMinutes(30),
+                now.AddMinutes(60),
+                false,
+                false,
+                null,
+                "work",
+                "Arbeit",
+                "#3B82B6",
+                [new CalendarCategory("Fokus", "#D83B01"), new CalendarCategory("Kunde", "#8764B8")]),
+            new OutlookAppointmentData(
+                "first",
+                "First",
+                "",
+                now.AddMinutes(30),
+                now.AddMinutes(60),
+                false,
+                false,
+                null,
+                "personal",
+                "Persönlich",
+                "#107C10",
+                [])
+        };
+
+        var snapshot = OutlookAppointmentMapper.CreateSnapshot(
+            now,
+            rawAppointments,
+            "Einige Kalender nicht verfügbar.");
+
+        Assert.Equal(new[] { "second", "first" }, snapshot.Appointments.Select(appointment => appointment.Id));
+        var appointment = snapshot.Appointments[0];
+        Assert.Equal("work", appointment.CalendarId);
+        Assert.Equal("Arbeit", appointment.CalendarName);
+        Assert.Equal("#3B82B6", appointment.CalendarColor);
+        Assert.Collection(
+            appointment.Categories,
+            category => Assert.Equal(new CalendarCategory("Fokus", "#D83B01"), category),
+            category => Assert.Equal(new CalendarCategory("Kunde", "#8764B8"), category));
+        Assert.Equal("Einige Kalender nicht verfügbar.", snapshot.StatusMessage);
+    }
 }

@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using CalendarTimeline.Snapbar;
 
@@ -16,7 +17,6 @@ public partial class MainWindow : Window
     private const double GridVerticalMargin = 6;
     private const double StatusRowHeight = 16;
     private const double TimelineWidthPadding = 24;
-    private const double MinimumBlockWidth = 36;
     private const int WmNcHitTest = 0x0084;
     private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
@@ -310,9 +310,16 @@ public partial class MainWindow : Window
         var timelineWidth = Math.Max(0, ActualWidth - TimelineWidthPadding);
         BlocksCanvas.Height = timelineHeight;
         TimelineGrid.Height = timelineHeight;
-        TimelineRail.Height = TimelineSnapbarLayout.RailHeight;
-        NowLine.Height = timelineHeight;
-        NowLine.Margin = new Thickness(timelineWidth * TimelineSnapbarLayout.NowRatio, 0, 0, 0);
+        var railBounds = TimelineSnapbarLayout.GetRailBounds();
+        TimelineRail.Height = railBounds.Height;
+        TimelineRail.Margin = new Thickness(0, railBounds.Top, 0, 0);
+        var nowLineBounds = TimelineSnapbarLayout.GetNowLineBounds();
+        NowLine.Height = nowLineBounds.Height;
+        NowLine.Margin = new Thickness(
+            timelineWidth * TimelineSnapbarLayout.NowRatio,
+            nowLineBounds.Top,
+            0,
+            0);
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 
@@ -322,7 +329,7 @@ public partial class MainWindow : Window
                 timelineWidth,
                 block.StartRatio,
                 block.WidthRatio,
-                MinimumBlockWidth);
+                TimelineSnapbarLayout.MinimumBlockWidth);
             var button = CreateBlockButton(block, bounds.Width);
             Canvas.SetLeft(button, bounds.Left);
             Canvas.SetTop(button, TimelineSnapbarLayout.GetBlockTop(block.Lane, laneCount));
@@ -456,34 +463,92 @@ public partial class MainWindow : Window
 
     private static Button CreateBlockButton(TimelineBlockViewModel block, double width)
     {
+        var colors = TimelineBubbleColors.Resolve(
+            block.CategoryColors,
+            block.CalendarColor,
+            block.CalendarIdentity);
         var button = new Button
         {
             DataContext = block,
             Width = width,
             Height = TimelineSnapbarLayout.BubbleHeight,
-            Padding = new Thickness(8, 0, 8, 0),
-            HorizontalContentAlignment = HorizontalAlignment.Left,
-            VerticalContentAlignment = VerticalAlignment.Center,
+            Padding = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
             BorderThickness = new Thickness(0),
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(block.IsRunning ? "#FF2E8B57" : "#FF336699")),
-            ToolTip = new TextBlock { Text = block.Subtitle },
-            Content = new TextBlock
+            Background = Brushes.Transparent,
+            ToolTip = new TextBlock
             {
-                Text = FormatBubbleText(block),
-                Foreground = Brushes.White,
-                FontWeight = FontWeights.SemiBold,
-                LineHeight = 16,
-                TextTrimming = TextTrimming.CharacterEllipsis,
+                Text = block.Tooltip,
+                MaxWidth = 480,
+                TextWrapping = TextWrapping.Wrap,
             },
+            Content = CreateBubbleContent(block, colors),
         };
         button.Click += OnBlockClick;
         return button;
     }
 
-    private static string FormatBubbleText(TimelineBlockViewModel block)
+    private static Border CreateBubbleContent(TimelineBlockViewModel block, TimelineBubbleColorSet colors)
     {
-        var time = block.Subtitle.Split(" · ", 2, StringSplitOptions.None)[0];
-        return $"{block.Title} · {time}";
+        var foreground = CreateSolidBrush(colors.Foreground);
+        return new Border
+        {
+            Background = CreateBubbleFill(colors.LightFill, colors.DarkFill),
+            BorderBrush = CreateSolidBrush(colors.Border),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(8, 3, 8, 3),
+            Effect = CreateBubbleShadow(block.IsRunning),
+            Child = new StackPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = block.Title,
+                        Foreground = foreground,
+                        FontWeight = FontWeights.SemiBold,
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                        TextWrapping = TextWrapping.NoWrap,
+                    },
+                    new TextBlock
+                    {
+                        Text = block.StartTime,
+                        Foreground = foreground,
+                        FontSize = 10,
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                        TextWrapping = TextWrapping.NoWrap,
+                    },
+                },
+            },
+        };
+    }
+
+    private static LinearGradientBrush CreateBubbleFill(string lightColor, string darkColor)
+    {
+        return new LinearGradientBrush(
+            (Color)ColorConverter.ConvertFromString(lightColor),
+            (Color)ColorConverter.ConvertFromString(darkColor),
+            new Point(0, 0),
+            new Point(0, 1));
+    }
+
+    private static SolidColorBrush CreateSolidBrush(string color)
+    {
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+    }
+
+    private static DropShadowEffect CreateBubbleShadow(bool isRunning)
+    {
+        return new DropShadowEffect
+        {
+            Color = Colors.Black,
+            ShadowDepth = isRunning ? 1 : 0.5,
+            BlurRadius = isRunning ? 8 : 4,
+            Opacity = isRunning ? 0.45 : 0.25,
+        };
     }
 
     private static void OnBlockClick(object sender, RoutedEventArgs e)
