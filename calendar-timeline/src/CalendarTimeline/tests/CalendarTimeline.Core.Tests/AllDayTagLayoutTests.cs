@@ -49,8 +49,10 @@ public sealed class AllDayTagLayoutTests
             NowRatio,
             NowRatio,
             (parkedRight - 0.1) / TimelineWidth);
+        var endX = parkedRight;
+        var exitFormulaAtBoundary = endX - AllDayTagLayout.TagWidth;
 
-        Assert.Equal(parked.Left, parkedRight - AllDayTagLayout.TagWidth);
+        Assert.Equal(parked.Left, exitFormulaAtBoundary);
         Assert.Equal(parkedRight - 0.1 - AllDayTagLayout.TagWidth, exiting.Left);
     }
 
