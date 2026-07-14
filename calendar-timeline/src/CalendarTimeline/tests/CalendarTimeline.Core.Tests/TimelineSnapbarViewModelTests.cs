@@ -188,6 +188,39 @@ public sealed class TimelineSnapbarViewModelTests
     }
 
     [Fact]
+    public async Task RefreshAsync_MapsFirstAllDayTagWithAggregateContext()
+    {
+        var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
+        var earlier = new DateTimeOffset(2026, 7, 10, 0, 0, 0, TimeSpan.Zero);
+        var snapshot = new CalendarSnapshot(
+            now,
+            now.AddMinutes(-30),
+            now.AddHours(4),
+            [
+                new Appointment("timed", "Timed", "Room", now, now.AddMinutes(30), false, false, null),
+                new Appointment("later", "Later", "Room", earlier.AddDays(1), earlier.AddDays(2), false, false, null,
+                    "work", "Arbeit", "#3B82B6", [new CalendarCategory("Focus", "#D83B01")], true),
+                new Appointment("earlier", "Earlier", "Room", earlier, earlier.AddDays(1), false, false, null,
+                    "private", "Privat", "#8764B8", [new CalendarCategory("Personal", "#8764B8")], true),
+            ],
+            null);
+        var viewModel = new TimelineSnapbarViewModel(new StubSnapbarSnapshotClient(snapshot));
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        var tag = viewModel.AllDayTag!;
+        Assert.Equal("Earlier", tag.Title);
+        Assert.Equal(1, tag.AdditionalCount);
+        Assert.Equal(["Earlier", "Later"], tag.TooltipTitles);
+        Assert.Equal("private", tag.CalendarIdentity);
+        Assert.Equal("#8764B8", tag.CalendarColor);
+        Assert.Equal(["#8764B8"], tag.CategoryColors);
+        Assert.Equal(earlier, tag.Start);
+        Assert.Equal(earlier.AddDays(1), tag.End);
+        Assert.Single(viewModel.Blocks);
+    }
+
+    [Fact]
     public void TimelineBlockViewModel_ExposesOnlySharedProjectionState()
     {
         var propertyNames = typeof(TimelineBlockViewModel)
