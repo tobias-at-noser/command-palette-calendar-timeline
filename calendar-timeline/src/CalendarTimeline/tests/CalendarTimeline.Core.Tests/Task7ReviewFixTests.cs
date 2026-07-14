@@ -389,6 +389,30 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("VerticalAlignment = VerticalAlignment.Center", source);
     }
 
+    [Fact]
+    public void SnapbarSourceRendersTheAllDayTagInsideTheSharedMaskedCanvasWithoutAnAction()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var updateLayout = source[
+            source.IndexOf("private void UpdateLayoutMetrics", StringComparison.Ordinal)..
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)];
+        Assert.Contains("private static Border CreateAllDayTag", source);
+        var factory = source[
+            source.IndexOf("private static Border CreateAllDayTag", StringComparison.Ordinal)..
+            source.IndexOf("private Button CreateBlockButton", StringComparison.Ordinal)];
+
+        Assert.Contains("if (viewModel.AllDayTag is { } allDayTag)", updateLayout);
+        Assert.Contains("AllDayTagLayout.GetBounds(", updateLayout);
+        Assert.Contains("CreateAllDayTag(allDayTag, bounds.Width)", updateLayout);
+        Assert.Contains("Canvas.SetTop(tag, TimelineSnapbarLayout.GetAllDayTagTop(laneCount));", updateLayout);
+        Assert.Contains("BlocksCanvas.Children.Add(tag);", updateLayout);
+        Assert.Contains("TextTrimming = TextTrimming.CharacterEllipsis", factory);
+        Assert.Contains("TooltipTitles", factory);
+        Assert.Contains("$\"+{tag.AdditionalCount}\"", factory);
+        Assert.Contains("new ToolTip", factory);
+        Assert.DoesNotContain("OnBlockClick", factory);
+    }
+
     private static int IndexOf(string source, string value)
     {
         return IndexOf(source, value, 0);

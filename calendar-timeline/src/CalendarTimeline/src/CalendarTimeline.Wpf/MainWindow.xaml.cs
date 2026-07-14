@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
+using CalendarTimeline.Core;
 using CalendarTimeline.Snapbar;
 
 namespace CalendarTimeline.Wpf;
@@ -384,6 +385,21 @@ public partial class MainWindow : Window
             Canvas.SetTop(button, TimelineSnapbarLayout.GetBlockTop(block.Lane, laneCount));
             BlocksCanvas.Children.Add(button);
         }
+
+        if (viewModel.AllDayTag is { } allDayTag)
+        {
+            var calendarWindow = CalendarWindow.Create(now);
+            var windowDuration = calendarWindow.End - calendarWindow.Start;
+            var bounds = AllDayTagLayout.GetBounds(
+                timelineWidth,
+                TimelineSnapbarLayout.NowRatio,
+                (allDayTag.Start - calendarWindow.Start).TotalMilliseconds / windowDuration.TotalMilliseconds,
+                (allDayTag.End - calendarWindow.Start).TotalMilliseconds / windowDuration.TotalMilliseconds);
+            var tag = CreateAllDayTag(allDayTag, bounds.Width);
+            Canvas.SetLeft(tag, bounds.Left);
+            Canvas.SetTop(tag, TimelineSnapbarLayout.GetAllDayTagTop(laneCount));
+            BlocksCanvas.Children.Add(tag);
+        }
     }
 
     private void UpdateWindowHeight(double? timelineHeight = null)
@@ -524,6 +540,84 @@ public partial class MainWindow : Window
         }
 
         return false;
+    }
+
+    private static Border CreateAllDayTag(AllDayTagViewModel tag, double width)
+    {
+        var colors = TimelineBubbleColors.Resolve(
+            tag.CategoryColors,
+            tag.CalendarColor,
+            tag.CalendarIdentity);
+        var foreground = CreateSolidBrush(colors.Foreground);
+        return new Border
+        {
+            Width = width,
+            Height = AllDayTagLayout.TagHeight,
+            Background = CreateBubbleFill(colors.LightFill, colors.DarkFill),
+            BorderBrush = CreateSolidBrush(colors.Border),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(6, 1, 6, 1),
+            ToolTip = CreateAllDayTagTooltip(tag),
+            Child = CreateAllDayTagLabel(tag, foreground),
+        };
+    }
+
+    private static ToolTip CreateAllDayTagTooltip(AllDayTagViewModel tag)
+    {
+        var titles = new StackPanel();
+        foreach (var title in tag.TooltipTitles)
+        {
+            titles.Children.Add(new TextBlock
+            {
+                Text = title,
+                TextWrapping = TextWrapping.Wrap,
+            });
+        }
+
+        return new ToolTip
+        {
+            MaxWidth = 480,
+            Content = titles,
+        };
+    }
+
+    private static Grid CreateAllDayTagLabel(AllDayTagViewModel tag, Brush foreground)
+    {
+        var label = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto },
+            },
+        };
+        label.Children.Add(new TextBlock
+        {
+            Text = tag.Title,
+            Foreground = foreground,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 9,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+
+        var additionalCount = new TextBlock
+        {
+            Text = $"+{tag.AdditionalCount}",
+            Foreground = foreground,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 9,
+            Margin = new Thickness(4, 0, 0, 0),
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = tag.AdditionalCount > 0 ? Visibility.Visible : Visibility.Collapsed,
+        };
+        Grid.SetColumn(additionalCount, 1);
+        label.Children.Add(additionalCount);
+
+        return label;
     }
 
     private Button CreateBlockButton(TimelineBlockViewModel block, double width)
