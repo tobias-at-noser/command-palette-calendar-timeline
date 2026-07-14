@@ -16,7 +16,6 @@ public partial class MainWindow : Window
 {
     private const double GridVerticalMargin = 6;
     private const double StatusRowHeight = 16;
-    private const double TimelineWidthPadding = 24;
     private const int WmNcHitTest = 0x0084;
     private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
@@ -336,7 +335,10 @@ public partial class MainWindow : Window
     {
         var laneCount = viewModel.Blocks.Count == 0 ? 1 : viewModel.Blocks.Max(block => block.Lane) + 1;
         var timelineHeight = TimelineSnapbarLayout.GetTimelineHeight(laneCount);
-        var timelineWidth = Math.Max(0, ActualWidth - TimelineWidthPadding);
+        var timelineWidth = TimelineGrid.ActualWidth;
+        BlocksViewport.Width = timelineWidth;
+        BlocksViewport.Height = timelineHeight;
+        BlocksCanvas.Width = timelineWidth;
         BlocksCanvas.Height = timelineHeight;
         TimelineGrid.Height = timelineHeight;
         var railBounds = TimelineSnapbarLayout.GetRailBounds();

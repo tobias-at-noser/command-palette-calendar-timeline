@@ -305,6 +305,27 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void SnapbarSourceUsesTimelineGridDimensionsForBlockGeometryAndMasking()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var viewportStart = xaml.IndexOf("<Grid x:Name=\"BlocksViewport\"", StringComparison.Ordinal);
+        var canvasStart = xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal);
+        var viewport = xaml[viewportStart..xaml.IndexOf("</Grid>", canvasStart, StringComparison.Ordinal)];
+        var updateLayout = source[
+            source.IndexOf("private void UpdateLayoutMetrics", StringComparison.Ordinal)..
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)];
+
+        Assert.Contains("var timelineWidth = TimelineGrid.ActualWidth;", updateLayout);
+        Assert.Contains("BlocksViewport.Width = timelineWidth;", updateLayout);
+        Assert.Contains("BlocksViewport.Height = timelineHeight;", updateLayout);
+        Assert.Contains("BlocksCanvas.Width = timelineWidth;", updateLayout);
+        Assert.Contains("BlocksCanvas.Height = timelineHeight;", updateLayout);
+        Assert.Contains("HorizontalAlignment=\"Left\"", viewport);
+        Assert.Contains("VerticalAlignment=\"Top\"", viewport);
+    }
+
+    [Fact]
     public void SnapbarSourceRestoresTopmostZOrderWithoutTakingFocusAfterDeactivation()
     {
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));

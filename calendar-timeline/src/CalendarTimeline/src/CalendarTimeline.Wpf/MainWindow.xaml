@@ -117,8 +117,10 @@
                      FontSize="10" />
         </Border>
         <Grid x:Name="BlocksViewport"
-              Panel.ZIndex="2"
-              ClipToBounds="True">
+               HorizontalAlignment="Left"
+               VerticalAlignment="Top"
+               Panel.ZIndex="2"
+               ClipToBounds="True">
           <Grid.OpacityMask>
             <LinearGradientBrush StartPoint="0,0"
                                  EndPoint="1,0"
