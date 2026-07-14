@@ -262,8 +262,8 @@ public sealed class Task7ReviewFixTests
         var blocksViewport = xaml[blocksViewportStart..];
         Assert.Contains("<Grid.OpacityMask>", blocksViewport);
         Assert.Contains("Offset=\"0\"", blocksViewport);
-        Assert.Contains("Offset=\".12\"", blocksViewport);
-        Assert.Contains("Offset=\".88\"", blocksViewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}\"", blocksViewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}\"", blocksViewport);
         Assert.Contains("Offset=\"1\"", blocksViewport);
         Assert.Contains("HorizontalAlignment=\"Right\"", nowTime);
         Assert.Contains("VerticalAlignment=\"Bottom\"", nowTime);
@@ -291,13 +291,14 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("Panel.ZIndex=\"2\"", viewport);
         Assert.Contains("ClipToBounds=\"True\"", viewport);
         Assert.Contains("<Grid.OpacityMask>", viewport);
+        Assert.Contains("x:Name=\"TimelineFadeMask\"", viewport);
         Assert.Contains("StartPoint=\"0,0\"", viewport);
-        Assert.Contains("EndPoint=\"1,0\"", viewport);
-        Assert.Contains("MappingMode=\"RelativeToBoundingBox\"", viewport);
+        Assert.Contains("MappingMode=\"Absolute\"", viewport);
         Assert.Contains("Offset=\"0\"", viewport);
-        Assert.Contains("Offset=\".12\"", viewport);
-        Assert.Contains("Offset=\".88\"", viewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}\"", viewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}\"", viewport);
         Assert.Contains("Offset=\"1\"", viewport);
+        Assert.DoesNotContain("MappingMode=\"RelativeToBoundingBox\"", viewport);
         Assert.DoesNotContain("Canvas.OpacityMask", blocksCanvas);
         Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
         Assert.Contains("Panel.ZIndex=\"4\"", nowTime);
@@ -305,7 +306,7 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
-    public void SnapbarSourceUsesTimelineGridDimensionsForBlockGeometryAndMasking()
+    public void SnapbarSourceUsesTimelineGridDimensionsForBlockGeometryAndAbsoluteMasking()
     {
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
@@ -317,12 +318,16 @@ public sealed class Task7ReviewFixTests
             source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)];
 
         Assert.Contains("var timelineWidth = TimelineGrid.ActualWidth;", updateLayout);
+        Assert.Contains("TimelineFadeMask.StartPoint = new Point(0, 0);", updateLayout);
+        Assert.Contains("TimelineFadeMask.EndPoint = new Point(timelineWidth, 0);", updateLayout);
         Assert.Contains("BlocksViewport.Width = timelineWidth;", updateLayout);
         Assert.Contains("BlocksViewport.Height = timelineHeight;", updateLayout);
         Assert.Contains("BlocksCanvas.Width = timelineWidth;", updateLayout);
         Assert.Contains("BlocksCanvas.Height = timelineHeight;", updateLayout);
         Assert.Contains("HorizontalAlignment=\"Left\"", viewport);
         Assert.Contains("VerticalAlignment=\"Top\"", viewport);
+        Assert.Equal(2, CountOccurrences(xaml, "TimelineSnapbarLayout.FadeInEndRatio"));
+        Assert.Equal(2, CountOccurrences(xaml, "TimelineSnapbarLayout.FadeOutStartRatio"));
     }
 
     [Fact]
@@ -348,6 +353,20 @@ public sealed class Task7ReviewFixTests
         var index = source.IndexOf(value, startIndex, StringComparison.Ordinal);
         Assert.True(index >= 0, $"Could not find '{value}' in TrayApplicationContext.cs.");
         return index;
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        var startIndex = 0;
+
+        while ((startIndex = source.IndexOf(value, startIndex, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            startIndex += value.Length;
+        }
+
+        return count;
     }
 
     private static string ResolveTrayApplicationContextPath(string? testAssemblyDirectory = null)
