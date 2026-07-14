@@ -178,7 +178,7 @@ public sealed class Task7ReviewFixTests
 
         Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
         Assert.Contains("IsHitTestVisible=\"False\"", nowLine);
-        Assert.Contains("Text = block.StartTime + \" · \"", source);
+        Assert.Contains("Text = block.StartTime,", source);
         Assert.Contains("Text = block.Title,", source);
         Assert.Contains("TextTrimming = TextTrimming.CharacterEllipsis", source);
         Assert.Contains("CreateBubbleFill(colors.LightFill, colors.DarkFill)", source);
@@ -244,7 +244,7 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("x:Name=\"NowTimeTextBlock\"", xaml);
         Assert.Contains("x:Name=\"CountdownTextBlock\"", xaml);
         Assert.Contains("Style = (Style)FindResource(\"TimelineBlockButtonStyle\")", source);
-        Assert.Contains("Text = block.StartTime + \" · \"", source);
+        Assert.Contains("Text = block.StartTime,", source);
         Assert.Contains("TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks)", source);
         Assert.Contains("TimelineTimeDisplay.GetDateTooltip(now)", source);
     }
@@ -362,6 +362,31 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("private const uint SwpNoActivate = 0x0010;", source);
         Assert.Contains("HwndTopmost", handler);
         Assert.Contains("SwpNoActivate", handler);
+    }
+
+    [Fact]
+    public void SnapbarSourceRendersCompactMetadataAndStructuredTooltips()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+
+        Assert.Contains("private static Grid CreateBubbleLabel", source);
+        Assert.Contains("BorderThickness = new Thickness(1)", source);
+        Assert.Contains("Padding = new Thickness(8, 3, 8, 3)", source);
+        Assert.Contains("new RowDefinition { Height = new GridLength(12) }", source);
+        Assert.Equal(2, CountOccurrences(source, "new RowDefinition { Height = new GridLength(12) }"));
+        Assert.Contains("FontSize = 11", source);
+        Assert.Contains("FontSize = 9", source);
+        Assert.Equal(4, CountOccurrences(source, "LineHeight = 12"));
+        Assert.Equal(4, CountOccurrences(source, "LineStackingStrategy = LineStackingStrategy.BlockLineHeight"));
+        Assert.Contains("TextTrimming = TextTrimming.CharacterEllipsis", source);
+        Assert.Contains("TextWrapping = TextWrapping.NoWrap", source);
+        Assert.Contains("TimelineBubbleLayout.ShouldShowDuration(width)", source);
+        Assert.Equal(2, CountOccurrences(source, "TimelineBubbleLayout.ShouldShowDuration(width)"));
+        Assert.Contains("new ToolTip", source);
+        Assert.Contains("Text = block.Title,", source);
+        Assert.Contains("Text = block.StartTime + \"–\" + block.End.ToString(\"HH:mm\") + \" · \" + block.Duration,", source);
+        Assert.Contains("Text = block.TooltipContext,", source);
+        Assert.Contains("VerticalAlignment = VerticalAlignment.Center", source);
     }
 
     private static int IndexOf(string source, string value)

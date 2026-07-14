@@ -17,11 +17,50 @@ public sealed class TimelineBlockViewModel
         string? teamsUrl,
         DateTimeOffset start,
         DateTimeOffset end)
+        : this(
+            title,
+            subtitle,
+            startTime,
+            string.Empty,
+            tooltip,
+            string.Empty,
+            calendarIdentity,
+            calendarColor,
+            categoryColors,
+            lane,
+            startRatio,
+            widthRatio,
+            isRunning,
+            teamsUrl,
+            start,
+            end)
+    {
+    }
+
+    public TimelineBlockViewModel(
+        string title,
+        string subtitle,
+        string startTime,
+        string duration,
+        string tooltip,
+        string tooltipContext,
+        string calendarIdentity,
+        string? calendarColor,
+        IReadOnlyList<string?> categoryColors,
+        int lane,
+        double startRatio,
+        double widthRatio,
+        bool isRunning,
+        string? teamsUrl,
+        DateTimeOffset start,
+        DateTimeOffset end)
     {
         Title = title;
         Subtitle = subtitle;
         StartTime = startTime;
+        Duration = duration;
         Tooltip = tooltip;
+        TooltipContext = tooltipContext;
         CalendarIdentity = calendarIdentity;
         CalendarColor = calendarColor;
         CategoryColors = categoryColors;
@@ -40,7 +79,11 @@ public sealed class TimelineBlockViewModel
 
     public string StartTime { get; }
 
+    public string Duration { get; }
+
     public string Tooltip { get; }
+
+    public string TooltipContext { get; }
 
     public string CalendarIdentity { get; }
 

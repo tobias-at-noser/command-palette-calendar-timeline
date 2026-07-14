@@ -543,19 +543,14 @@ public partial class MainWindow : Window
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
             Style = (Style)FindResource("TimelineBlockButtonStyle"),
-            ToolTip = new TextBlock
-            {
-                Text = block.Tooltip,
-                MaxWidth = 480,
-                TextWrapping = TextWrapping.Wrap,
-            },
-            Content = CreateBubbleContent(block, colors),
+            ToolTip = CreateBubbleTooltip(block),
+            Content = CreateBubbleContent(block, colors, width),
         };
         button.Click += OnBlockClick;
         return button;
     }
 
-    private static Border CreateBubbleContent(TimelineBlockViewModel block, TimelineBubbleColorSet colors)
+    private static Border CreateBubbleContent(TimelineBlockViewModel block, TimelineBubbleColorSet colors, double width)
     {
         var foreground = CreateSolidBrush(colors.Foreground);
         return new Border
@@ -566,38 +561,114 @@ public partial class MainWindow : Window
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(8, 3, 8, 3),
             Effect = CreateBubbleShadow(block.IsRunning),
-            Child = CreateBubbleLabel(block, foreground),
+            Child = CreateBubbleLabel(block, foreground, width),
         };
     }
 
-    private static DockPanel CreateBubbleLabel(TimelineBlockViewModel block, Brush foreground)
+    private static ToolTip CreateBubbleTooltip(TimelineBlockViewModel block)
     {
-        var timeText = new TextBlock
+        return new ToolTip
         {
-            Text = block.StartTime + " · ",
-            Foreground = foreground,
-            FontWeight = FontWeights.SemiBold,
-            TextWrapping = TextWrapping.NoWrap,
-        };
-        DockPanel.SetDock(timeText, Dock.Left);
-
-        return new DockPanel
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            LastChildFill = true,
-            Children =
+            MaxWidth = 480,
+            Content = new StackPanel
             {
-                timeText,
-                new TextBlock
+                Children =
                 {
-                    Text = block.Title,
-                    Foreground = foreground,
-                    FontWeight = FontWeights.SemiBold,
-                    TextTrimming = TextTrimming.CharacterEllipsis,
-                    TextWrapping = TextWrapping.NoWrap,
+                    new TextBlock
+                    {
+                        Text = block.Title,
+                        FontWeight = FontWeights.SemiBold,
+                        TextWrapping = TextWrapping.Wrap,
+                    },
+                    new TextBlock
+                    {
+                        Text = block.StartTime + "–" + block.End.ToString("HH:mm") + " · " + block.Duration,
+                        TextWrapping = TextWrapping.Wrap,
+                    },
+                    new TextBlock
+                    {
+                        Text = block.TooltipContext,
+                        TextWrapping = TextWrapping.Wrap,
+                        Visibility = string.IsNullOrWhiteSpace(block.TooltipContext)
+                            ? Visibility.Collapsed
+                            : Visibility.Visible,
+                    },
                 },
             },
         };
+    }
+
+    private static Grid CreateBubbleLabel(TimelineBlockViewModel block, Brush foreground, double width)
+    {
+        var label = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = new GridLength(12) },
+                new RowDefinition { Height = new GridLength(12) },
+            },
+        };
+        var metadata = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = block.StartTime,
+                    Foreground = foreground,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 11,
+                    LineHeight = 12,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                    TextWrapping = TextWrapping.NoWrap,
+                },
+                new TextBlock
+                {
+                    Text = " · ",
+                    Foreground = foreground,
+                    FontSize = 9,
+                    LineHeight = 12,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Visibility = TimelineBubbleLayout.ShouldShowDuration(width)
+                        ? Visibility.Visible
+                        : Visibility.Collapsed,
+                },
+                new TextBlock
+                {
+                    Text = block.Duration,
+                    Foreground = foreground,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 9,
+                    LineHeight = 12,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                    TextWrapping = TextWrapping.NoWrap,
+                    Visibility = TimelineBubbleLayout.ShouldShowDuration(width)
+                        ? Visibility.Visible
+                        : Visibility.Collapsed,
+                },
+            },
+        };
+        Grid.SetRow(metadata, 0);
+        label.Children.Add(metadata);
+
+        var title = new TextBlock
+        {
+            Text = block.Title,
+            Foreground = foreground,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 9,
+            LineHeight = 12,
+            LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetRow(title, 1);
+        label.Children.Add(title);
+
+        return label;
     }
 
     private static LinearGradientBrush CreateBubbleFill(string lightColor, string darkColor)

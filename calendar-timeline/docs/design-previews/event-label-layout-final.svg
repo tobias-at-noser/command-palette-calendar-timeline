@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="940" viewBox="0 0 1200 940" role="img" aria-labelledby="title description">
+  <title id="title">Finales Layout fuer Timeline-Event-Bubbles</title>
+  <desc id="description">Native Vorschau einer 32 Pixel hohen Timeline-Bubble: Startzeit und optionale Dauer oben, Titel im Metadatenstil unten.</desc>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#1d2a43"/>
+      <stop offset="1" stop-color="#172238"/>
+    </linearGradient>
+    <linearGradient id="bubble" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#378b77"/>
+      <stop offset="1" stop-color="#21695a"/>
+    </linearGradient>
+    <linearGradient id="rail" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#6f83a8" stop-opacity=".18"/>
+      <stop offset=".12" stop-color="#bfd0eb" stop-opacity=".75"/>
+      <stop offset=".88" stop-color="#bfd0eb" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#6f83a8" stop-opacity=".18"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-60%" width="140%" height="220%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#050b16" flood-opacity=".45"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="940" fill="#101827"/>
+  <text x="78" y="92" fill="#f2f6ff" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">02  Zeit im Kopfstreifen</text>
+  <text x="80" y="128" fill="#9cacC6" font-family="Segoe UI, Arial, sans-serif" font-size="18">Finale Vorschau in der tatsächlichen Bubble-Höhe von 32 px</text>
+
+  <rect x="78" y="177" width="1044" height="206" rx="12" fill="url(#surface)" stroke="#354764"/>
+  <text x="102" y="211" fill="#aebdd5" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing=".8">TIMELINE · NATIVE GRÖSSE</text>
+  <rect x="102" y="271" width="996" height="2" rx="1" fill="url(#rail)"/>
+  <line x1="340" y1="232" x2="340" y2="313" stroke="#f8fbff" stroke-width="2" opacity=".92"/>
+  <rect x="102" y="255" width="52" height="32" rx="5" fill="url(#bubble)" stroke="#8ec9b9" stroke-opacity=".55" filter="url(#shadow)"/>
+  <text x="110" y="267" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">09:30</text>
+  <line x1="110" y1="270" x2="146" y2="270" stroke="#bfe9dc" stroke-opacity=".36"/>
+  <text x="110" y="280" fill="#c7f1e4" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="650" letter-spacing=".45">ARCH…</text>
+  <rect x="190" y="255" width="142" height="32" rx="5" fill="url(#bubble)" stroke="#8ec9b9" stroke-opacity=".55" filter="url(#shadow)"/>
+  <text x="198" y="267" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">09:30</text>
+  <circle cx="236" cy="263" r="1.5" fill="#e9fffa"/>
+  <text x="242" y="267" fill="#e9fffa" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing=".35">45 MIN.</text>
+  <line x1="198" y1="270" x2="324" y2="270" stroke="#bfe9dc" stroke-opacity=".36"/>
+  <text x="198" y="280" fill="#c7f1e4" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="650" letter-spacing=".45">KURZER TERMIN</text>
+  <rect x="368" y="255" width="350" height="32" rx="5" fill="url(#bubble)" stroke="#8ec9b9" stroke-opacity=".55" filter="url(#shadow)"/>
+  <text x="376" y="267" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">09:30</text>
+  <circle cx="414" cy="263" r="1.5" fill="#e9fffa"/>
+  <text x="420" y="267" fill="#e9fffa" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing=".35">45 MIN.</text>
+  <line x1="376" y1="270" x2="710" y2="270" stroke="#bfe9dc" stroke-opacity=".36"/>
+  <text x="376" y="280" fill="#c7f1e4" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="650" letter-spacing=".45">ARCHITEKTURABSTIMMUNG: EDGE-FADE UND SNAPBAR</text>
+  <text x="102" y="347" fill="#7f91af" font-family="Segoe UI, Arial, sans-serif" font-size="13">52 px: Dauer aus</text>
+  <text x="220" y="347" fill="#7f91af" font-family="Segoe UI, Arial, sans-serif" font-size="13">142 px: Dauer an</text>
+  <text x="368" y="347" fill="#7f91af" font-family="Segoe UI, Arial, sans-serif" font-size="13">Titel läuft bei Bedarf mit Ellipse aus</text>
+
+  <text x="78" y="457" fill="#e4ecfb" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">Verhalten</text>
+  <line x1="78" y1="478" x2="1122" y2="478" stroke="#30415f"/>
+  <text x="78" y="524" fill="#f2f6ff" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="650">Kopfstreifen</text>
+  <text x="78" y="553" fill="#aab9d1" font-family="Segoe UI, Arial, sans-serif" font-size="16">Startzeit ist immer sichtbar. Die Dauer erscheint nur, wenn sie neben der Zeit Platz findet.</text>
+  <text x="78" y="616" fill="#f2f6ff" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="650">Titel-Metadatum</text>
+  <text x="78" y="645" fill="#aab9d1" font-family="Segoe UI, Arial, sans-serif" font-size="16">Der Titel bleibt in der unteren, kleineren und gesperrten Metazeile; er wird bei Bedarf gekürzt.</text>
+  <text x="78" y="713" fill="#e4ecfb" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">Tooltip</text>
+  <rect x="78" y="738" width="454" height="144" rx="7" fill="#24334f" stroke="#5d7195" filter="url(#shadow)"/>
+  <text x="96" y="770" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Architekturabstimmung: Edge-Fade und Snapbar</text>
+  <text x="96" y="800" fill="#dce8ff" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="650">09:30–10:15</text>
+  <circle cx="171" cy="795" r="2" fill="#aac1e4"/>
+  <text x="181" y="800" fill="#c6d5ed" font-family="Segoe UI, Arial, sans-serif" font-size="14">45 Min.</text>
+  <line x1="96" y1="816" x2="514" y2="816" stroke="#7890b8" stroke-opacity=".42"/>
+  <text x="96" y="844" fill="#b9c9e2" font-family="Segoe UI, Arial, sans-serif" font-size="13">Microsoft Teams · Arbeit · Fokus, Kunde</text>
+  <text x="566" y="770" fill="#f2f6ff" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="650">Vollständiger Titel zuerst</text>
+  <text x="566" y="800" fill="#aab9d1" font-family="Segoe UI, Arial, sans-serif" font-size="16">Die Zeit ist die zweite Ebene; Ort, Kalender</text>
+  <text x="566" y="826" fill="#aab9d1" font-family="Segoe UI, Arial, sans-serif" font-size="16">und Kategorien folgen kompakt als Kontext.</text>
+  <text x="78" y="912" fill="#7284a4" font-family="Segoe UI, Arial, sans-serif" font-size="14">Calendar Timeline · Statische Designvorschau, noch nicht implementiert</text>
+</svg>
