@@ -370,10 +370,14 @@ public sealed class Task7ReviewFixTests
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
 
         Assert.Contains("private static Grid CreateBubbleLabel", source);
+        Assert.Contains("BorderThickness = new Thickness(1)", source);
+        Assert.Contains("Padding = new Thickness(8, 3, 8, 3)", source);
         Assert.Contains("new RowDefinition { Height = new GridLength(12) }", source);
-        Assert.Contains("new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }", source);
+        Assert.Equal(2, CountOccurrences(source, "new RowDefinition { Height = new GridLength(12) }"));
         Assert.Contains("FontSize = 11", source);
         Assert.Contains("FontSize = 9", source);
+        Assert.Equal(4, CountOccurrences(source, "LineHeight = 12"));
+        Assert.Equal(4, CountOccurrences(source, "LineStackingStrategy = LineStackingStrategy.BlockLineHeight"));
         Assert.Contains("TextTrimming = TextTrimming.CharacterEllipsis", source);
         Assert.Contains("TextWrapping = TextWrapping.NoWrap", source);
         Assert.Contains("TimelineBubbleLayout.ShouldShowDuration(width)", source);

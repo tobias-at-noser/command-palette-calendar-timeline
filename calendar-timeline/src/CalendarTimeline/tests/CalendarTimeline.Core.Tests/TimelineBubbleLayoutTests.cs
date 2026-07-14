@@ -16,4 +16,10 @@ public sealed class TimelineBubbleLayoutTests
     {
         Assert.True(TimelineBubbleLayout.ShouldShowDuration(TimelineBubbleLayout.DurationVisibleMinimumWidth));
     }
+
+    [Fact]
+    public void ShouldShowDuration_HidesDurationImmediatelyBelowTheVisibilityThreshold()
+    {
+        Assert.False(TimelineBubbleLayout.ShouldShowDuration(TimelineBubbleLayout.DurationVisibleMinimumWidth - 1));
+    }
 }

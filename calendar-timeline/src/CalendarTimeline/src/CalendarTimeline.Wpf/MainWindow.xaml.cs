@@ -605,7 +605,7 @@ public partial class MainWindow : Window
             RowDefinitions =
             {
                 new RowDefinition { Height = new GridLength(12) },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) },
+                new RowDefinition { Height = new GridLength(12) },
             },
         };
         var metadata = new StackPanel
@@ -619,6 +619,8 @@ public partial class MainWindow : Window
                     Foreground = foreground,
                     FontWeight = FontWeights.SemiBold,
                     FontSize = 11,
+                    LineHeight = 12,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
                     TextWrapping = TextWrapping.NoWrap,
                 },
                 new TextBlock
@@ -626,6 +628,8 @@ public partial class MainWindow : Window
                     Text = " · ",
                     Foreground = foreground,
                     FontSize = 9,
+                    LineHeight = 12,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
                     VerticalAlignment = VerticalAlignment.Center,
                     Visibility = TimelineBubbleLayout.ShouldShowDuration(width)
                         ? Visibility.Visible
@@ -637,6 +641,8 @@ public partial class MainWindow : Window
                     Foreground = foreground,
                     FontWeight = FontWeights.SemiBold,
                     FontSize = 9,
+                    LineHeight = 12,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
                     TextWrapping = TextWrapping.NoWrap,
                     Visibility = TimelineBubbleLayout.ShouldShowDuration(width)
                         ? Visibility.Visible
@@ -653,6 +659,8 @@ public partial class MainWindow : Window
             Foreground = foreground,
             FontWeight = FontWeights.SemiBold,
             FontSize = 9,
+            LineHeight = 12,
+            LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap,
             VerticalAlignment = VerticalAlignment.Center,
