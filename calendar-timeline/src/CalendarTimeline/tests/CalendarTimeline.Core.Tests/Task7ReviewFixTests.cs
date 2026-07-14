@@ -289,6 +289,9 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("Panel.ZIndex=\"2\"", viewport);
         Assert.Contains("ClipToBounds=\"True\"", viewport);
         Assert.Contains("<Grid.OpacityMask>", viewport);
+        Assert.Contains("StartPoint=\"0,0\"", viewport);
+        Assert.Contains("EndPoint=\"1,0\"", viewport);
+        Assert.Contains("MappingMode=\"RelativeToBoundingBox\"", viewport);
         Assert.Contains("Offset=\"0\"", viewport);
         Assert.Contains("Offset=\".12\"", viewport);
         Assert.Contains("Offset=\".88\"", viewport);
