@@ -20,7 +20,9 @@
           <Setter.Value>
             <ControlTemplate TargetType="{x:Type Button}">
               <Grid>
-                <ContentPresenter />
+                <ContentPresenter
+                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                 <Border x:Name="InteractionHighlight"
                         CornerRadius="5"
                         BorderThickness="1"

@@ -239,6 +239,8 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("<Grid.OpacityMask>", xaml);
         Assert.Contains("x:Key=\"TimelineBlockButtonStyle\"", xaml);
         Assert.Contains("CornerRadius=\"5\"", xaml);
+        Assert.Contains("HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\"", xaml);
+        Assert.Contains("VerticalAlignment=\"{TemplateBinding VerticalContentAlignment}\"", xaml);
         Assert.Contains("x:Name=\"NowTimeTextBlock\"", xaml);
         Assert.Contains("x:Name=\"CountdownTextBlock\"", xaml);
         Assert.Contains("Style = (Style)FindResource(\"TimelineBlockButtonStyle\")", source);
