@@ -76,8 +76,10 @@
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
               <GradientStop Color="#001B2635" Offset="0" />
-              <GradientStop Color="#CC6A8296" Offset="0.12" />
-              <GradientStop Color="#CC6A8296" Offset="0.88" />
+              <GradientStop Color="#CC6A8296"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}" />
+              <GradientStop Color="#CC6A8296"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}" />
               <GradientStop Color="#001B2635" Offset="1" />
             </LinearGradientBrush>
           </Border.Background>
@@ -140,12 +142,15 @@
                Panel.ZIndex="2"
                ClipToBounds="True">
           <Grid.OpacityMask>
-            <LinearGradientBrush StartPoint="0,0"
-                                 EndPoint="1,0"
-                                 MappingMode="RelativeToBoundingBox">
+            <LinearGradientBrush x:Name="TimelineFadeMask"
+                                 StartPoint="0,0"
+                                 EndPoint="0,0"
+                                 MappingMode="Absolute">
               <GradientStop Offset="0" Color="Transparent" />
-              <GradientStop Offset=".12" Color="White" />
-              <GradientStop Offset=".88" Color="White" />
+              <GradientStop Color="White"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}" />
+              <GradientStop Color="White"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}" />
               <GradientStop Offset="1" Color="Transparent" />
             </LinearGradientBrush>
           </Grid.OpacityMask>

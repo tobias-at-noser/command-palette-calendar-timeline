@@ -8,6 +8,8 @@ public static class TimelineSnapbarLayout
     public const double RailHeight = 2;
     public const double MinimumBlockWidth = 52;
     public const double NowRatio = 1d / 9d;
+    public const double FadeInEndRatio = NowRatio;
+    public const double FadeOutStartRatio = 1d - NowRatio;
 
     public static double GetTimelineHeight(int laneCount)
     {

@@ -336,6 +336,8 @@ public partial class MainWindow : Window
         var laneCount = viewModel.Blocks.Count == 0 ? 1 : viewModel.Blocks.Max(block => block.Lane) + 1;
         var timelineHeight = TimelineSnapbarLayout.GetTimelineHeight(laneCount);
         var timelineWidth = TimelineGrid.ActualWidth;
+        TimelineFadeMask.StartPoint = new Point(0, 0);
+        TimelineFadeMask.EndPoint = new Point(timelineWidth, 0);
         BlocksViewport.Width = timelineWidth;
         BlocksViewport.Height = timelineHeight;
         BlocksCanvas.Width = timelineWidth;
