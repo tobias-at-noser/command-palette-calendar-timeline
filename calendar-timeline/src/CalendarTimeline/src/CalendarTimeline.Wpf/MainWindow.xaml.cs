@@ -353,13 +353,18 @@ public partial class MainWindow : Window
         NowTimeTextBlock.Text = now.ToString("HH:mm");
         NowTimeIndicator.ToolTip = TimelineTimeDisplay.GetDateTooltip(now);
         NowTimeIndicator.Margin = new Thickness(
+            0,
+            0,
+            timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4,
+            timelineHeight - nowLineBounds.Bottom);
+        CountdownIndicator.Margin = new Thickness(
             timelineWidth * TimelineSnapbarLayout.NowRatio + 4,
-            4,
+            0,
             0,
             0);
         var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);
         CountdownTextBlock.Text = countdown ?? string.Empty;
-        CountdownTextBlock.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
+        CountdownIndicator.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 
@@ -384,16 +389,17 @@ public partial class MainWindow : Window
         var requiredHeight = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
             + (hasStatus ? StatusRowHeight : 0);
         minimumWindowHeight = requiredHeight;
-        MinHeight = minimumWindowHeight;
         var targetHeight = TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight);
-        if (Height == targetHeight)
-        {
-            return;
-        }
 
         try
         {
             isUpdatingWindowHeight = true;
+            MinHeight = minimumWindowHeight;
+            if (Height == targetHeight)
+            {
+                return;
+            }
+
             Height = targetHeight;
         }
         finally
@@ -416,6 +422,7 @@ public partial class MainWindow : Window
 
         Width = settings.Width;
         Height = settings.Height;
+        manualWindowHeight = Math.Max(MinHeight, Height);
         Left = settings.Left;
         Top = settings.Top;
     }

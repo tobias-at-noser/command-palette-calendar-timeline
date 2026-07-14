@@ -188,12 +188,46 @@ public sealed class Task7ReviewFixTests
     public void SnapbarSourceSeparatesManualHeightFromAutomaticLaneHeight()
     {
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var sizeChanged = source[
+            source.IndexOf("private void OnSizeChanged", StringComparison.Ordinal)..
+            source.IndexOf("private void OnLocationChanged", StringComparison.Ordinal)];
+        var updateWindowHeight = source[
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)..
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)];
 
         Assert.Contains("private double manualWindowHeight;", source);
         Assert.Contains("private bool isUpdatingWindowHeight;", source);
-        Assert.Contains("if (!isUpdatingWindowHeight)", source);
-        Assert.Contains("manualWindowHeight = Math.Max(MinHeight, Height);", source);
+        Assert.Contains("if (!isUpdatingWindowHeight)", sizeChanged);
+        Assert.Contains("manualWindowHeight = Math.Max(MinHeight, Height);", sizeChanged);
         Assert.Contains("TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight)", source);
+        Assert.True(
+            IndexOf(updateWindowHeight, "isUpdatingWindowHeight = true;")
+            < IndexOf(updateWindowHeight, "MinHeight = minimumWindowHeight;"));
+        Assert.True(
+            IndexOf(updateWindowHeight, "MinHeight = minimumWindowHeight;")
+            < IndexOf(updateWindowHeight, "Height = targetHeight;"));
+        Assert.True(
+            IndexOf(updateWindowHeight, "Height = targetHeight;")
+            < IndexOf(updateWindowHeight, "isUpdatingWindowHeight = false;"));
+    }
+
+    [Fact]
+    public void SnapbarSourceUsesRestoredHeightAsTheManualFloorBeforeAutomaticLayoutUpdates()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var restoreWindowSettings = source[
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)..
+            source.IndexOf("private void PersistWindowSettings", StringComparison.Ordinal)];
+        var constructor = source[
+            source.IndexOf("public MainWindow(TimelineSnapbarViewModel viewModel)", StringComparison.Ordinal)..
+            source.IndexOf("private async void OnLoaded", StringComparison.Ordinal)];
+
+        Assert.True(
+            IndexOf(restoreWindowSettings, "Height = settings.Height;")
+            < IndexOf(restoreWindowSettings, "manualWindowHeight = Math.Max(MinHeight, Height);"));
+        Assert.True(
+            IndexOf(constructor, "RestoreWindowSettings();")
+            < IndexOf(constructor, "SizeChanged += OnSizeChanged;"));
     }
 
     [Fact]
@@ -211,6 +245,29 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("Text = block.StartTime + \" · \"", source);
         Assert.Contains("TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks)", source);
         Assert.Contains("TimelineTimeDisplay.GetDateTooltip(now)", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceKeepsTimelineFadesFixedAndSeparatesTimeIndicators()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var blocksCanvas = xaml[xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal)..];
+        var nowTime = xaml[xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var countdown = xaml[xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+
+        Assert.Contains("<Canvas.OpacityMask>", blocksCanvas);
+        Assert.Contains("Offset=\"0\"", blocksCanvas);
+        Assert.Contains("Offset=\"0.12\"", blocksCanvas);
+        Assert.Contains("Offset=\"0.88\"", blocksCanvas);
+        Assert.Contains("Offset=\"1\"", blocksCanvas);
+        Assert.Contains("HorizontalAlignment=\"Right\"", nowTime);
+        Assert.Contains("VerticalAlignment=\"Bottom\"", nowTime);
+        Assert.Contains("HorizontalAlignment=\"Left\"", countdown);
+        Assert.Contains("VerticalAlignment=\"Center\"", countdown);
+        Assert.Contains("timelineHeight - nowLineBounds.Bottom", source);
+        Assert.Contains("timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4", source);
+        Assert.Contains("CountdownIndicator.Margin", source);
     }
 
     [Fact]
