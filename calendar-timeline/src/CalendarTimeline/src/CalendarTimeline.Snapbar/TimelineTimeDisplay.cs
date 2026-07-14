@@ -6,6 +6,9 @@ public static class TimelineTimeDisplay
 {
     private static readonly CultureInfo GermanCulture = CultureInfo.GetCultureInfo("de-DE");
 
+    public static string GetCurrentTime(DateTimeOffset now) =>
+        now.ToString("HH:mm", CultureInfo.InvariantCulture);
+
     public static string GetDateTooltip(DateTimeOffset now)
     {
         return now.ToString("dddd, dd.MM.yyyy", GermanCulture);
@@ -13,7 +16,7 @@ public static class TimelineTimeDisplay
 
     public static string? GetCountdown(DateTimeOffset now, IEnumerable<TimelineBlockViewModel> blocks)
     {
-        var materializedBlocks = blocks.ToArray();
+        var materializedBlocks = blocks.Where(block => block.End > block.Start).ToArray();
         if (materializedBlocks.Any(block => block.Start <= now && now < block.End))
         {
             return null;

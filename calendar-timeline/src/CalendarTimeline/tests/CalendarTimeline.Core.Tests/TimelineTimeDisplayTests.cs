@@ -6,6 +6,14 @@ namespace CalendarTimeline.Core.Tests;
 public sealed class TimelineTimeDisplayTests
 {
     [Fact]
+    public void GetCurrentTime_FormatsTheTimeDeterministically()
+    {
+        var now = new DateTimeOffset(2026, 7, 13, 9, 7, 0, TimeSpan.Zero);
+
+        Assert.Equal("09:07", TimelineTimeDisplay.GetCurrentTime(now));
+    }
+
+    [Fact]
     public void GetCountdown_RoundsTheNextAppointmentToFiveMinutes()
     {
         var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
@@ -33,6 +41,31 @@ public sealed class TimelineTimeDisplayTests
         var result = TimelineTimeDisplay.GetCountdown(now, []);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetCountdown_HidesTheCountdownForAnInvalidFutureAppointment()
+    {
+        var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+
+        var result = TimelineTimeDisplay.GetCountdown(now, [CreateBlock(now.AddMinutes(30), now.AddMinutes(30))]);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetCountdown_IgnoresAnInvalidFutureAppointmentBeforeTheNextValidAppointment()
+    {
+        var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+
+        var result = TimelineTimeDisplay.GetCountdown(
+            now,
+            [
+                CreateBlock(now.AddMinutes(30), now.AddMinutes(20)),
+                CreateBlock(now.AddMinutes(82), now.AddMinutes(112)),
+            ]);
+
+        Assert.Equal("01:20", result);
     }
 
     [Fact]

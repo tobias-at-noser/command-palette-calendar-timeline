@@ -350,7 +350,7 @@ public partial class MainWindow : Window
             0,
             0);
         var now = DateTimeOffset.Now;
-        NowTimeTextBlock.Text = now.ToString("HH:mm");
+        NowTimeTextBlock.Text = TimelineTimeDisplay.GetCurrentTime(now);
         NowTimeIndicator.ToolTip = TimelineTimeDisplay.GetDateTooltip(now);
         NowTimeIndicator.Margin = new Thickness(
             0,
