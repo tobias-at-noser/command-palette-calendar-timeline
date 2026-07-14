@@ -236,7 +236,7 @@ public sealed class Task7ReviewFixTests
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
 
-        Assert.Contains("<Canvas.OpacityMask>", xaml);
+        Assert.Contains("<Grid.OpacityMask>", xaml);
         Assert.Contains("x:Key=\"TimelineBlockButtonStyle\"", xaml);
         Assert.Contains("CornerRadius=\"5\"", xaml);
         Assert.Contains("x:Name=\"NowTimeTextBlock\"", xaml);
@@ -252,15 +252,17 @@ public sealed class Task7ReviewFixTests
     {
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
-        var blocksCanvas = xaml[xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal)..];
+        var blocksViewportStart = xaml.IndexOf("x:Name=\"BlocksViewport\"", StringComparison.Ordinal);
         var nowTime = xaml[xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
         var countdown = xaml[xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
 
-        Assert.Contains("<Canvas.OpacityMask>", blocksCanvas);
-        Assert.Contains("Offset=\"0\"", blocksCanvas);
-        Assert.Contains("Offset=\"0.12\"", blocksCanvas);
-        Assert.Contains("Offset=\"0.88\"", blocksCanvas);
-        Assert.Contains("Offset=\"1\"", blocksCanvas);
+        Assert.True(blocksViewportStart >= 0, "Could not find BlocksViewport.");
+        var blocksViewport = xaml[blocksViewportStart..];
+        Assert.Contains("<Grid.OpacityMask>", blocksViewport);
+        Assert.Contains("Offset=\"0\"", blocksViewport);
+        Assert.Contains("Offset=\".12\"", blocksViewport);
+        Assert.Contains("Offset=\".88\"", blocksViewport);
+        Assert.Contains("Offset=\"1\"", blocksViewport);
         Assert.Contains("HorizontalAlignment=\"Right\"", nowTime);
         Assert.Contains("VerticalAlignment=\"Bottom\"", nowTime);
         Assert.Contains("HorizontalAlignment=\"Left\"", countdown);
@@ -268,6 +270,33 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("timelineHeight - nowLineBounds.Bottom", source);
         Assert.Contains("timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4", source);
         Assert.Contains("CountdownIndicator.Margin", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceUsesAClippedMaskedViewportForUnboundedBlocks()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var viewportStart = xaml.IndexOf("<Grid x:Name=\"BlocksViewport\"", StringComparison.Ordinal);
+        var canvasStart = xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal);
+        var nowLine = xaml[xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var nowTime = xaml[xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var countdown = xaml[xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+
+        Assert.True(viewportStart >= 0, "Could not find BlocksViewport.");
+        Assert.True(canvasStart > viewportStart, "BlocksCanvas must be a child of BlocksViewport.");
+        var viewport = xaml[viewportStart..xaml.IndexOf("</Grid>", canvasStart, StringComparison.Ordinal)];
+        var blocksCanvas = xaml[canvasStart..xaml.IndexOf("/>", canvasStart, StringComparison.Ordinal)];
+        Assert.Contains("Panel.ZIndex=\"2\"", viewport);
+        Assert.Contains("ClipToBounds=\"True\"", viewport);
+        Assert.Contains("<Grid.OpacityMask>", viewport);
+        Assert.Contains("Offset=\"0\"", viewport);
+        Assert.Contains("Offset=\".12\"", viewport);
+        Assert.Contains("Offset=\".88\"", viewport);
+        Assert.Contains("Offset=\"1\"", viewport);
+        Assert.DoesNotContain("Canvas.OpacityMask", blocksCanvas);
+        Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
+        Assert.Contains("Panel.ZIndex=\"4\"", nowTime);
+        Assert.Contains("Panel.ZIndex=\"4\"", countdown);
     }
 
     [Fact]

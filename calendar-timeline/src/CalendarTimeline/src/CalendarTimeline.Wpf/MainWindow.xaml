@@ -114,16 +114,22 @@
                      Foreground="#DFFFFFFF"
                      FontSize="10" />
         </Border>
-        <Canvas x:Name="BlocksCanvas" Panel.ZIndex="2">
-          <Canvas.OpacityMask>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-              <GradientStop Color="#00FFFFFF" Offset="0" />
-              <GradientStop Color="#FFFFFFFF" Offset="0.12" />
-              <GradientStop Color="#FFFFFFFF" Offset="0.88" />
-              <GradientStop Color="#00FFFFFF" Offset="1" />
+        <Grid x:Name="BlocksViewport"
+              Panel.ZIndex="2"
+              ClipToBounds="True">
+          <Grid.OpacityMask>
+            <LinearGradientBrush StartPoint="0,0"
+                                 EndPoint="1,0"
+                                 MappingMode="RelativeToBoundingBox">
+              <GradientStop Offset="0" Color="Transparent" />
+              <GradientStop Offset=".12" Color="White" />
+              <GradientStop Offset=".88" Color="White" />
+              <GradientStop Offset="1" Color="Transparent" />
             </LinearGradientBrush>
-          </Canvas.OpacityMask>
-        </Canvas>
+          </Grid.OpacityMask>
+
+          <Canvas x:Name="BlocksCanvas" />
+        </Grid>
       </Grid>
 
       <TextBlock x:Name="StatusTextBlock"
