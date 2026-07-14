@@ -87,9 +87,15 @@ public sealed class TimelineSnapbarLayoutTests
     }
 
     [Fact]
-    public void NowRatio_MatchesTheConfiguredCalendarWindow()
+    public void FadeRatios_MatchTheConfiguredCalendarWindow()
     {
         Assert.Equal(1d / 9d, TimelineSnapbarLayout.NowRatio, 10);
+        Assert.Equal(TimelineSnapbarLayout.NowRatio, TimelineSnapbarLayout.FadeInEndRatio, 10);
+        Assert.Equal(8d / 9d, TimelineSnapbarLayout.FadeOutStartRatio, 10);
+        Assert.Equal(
+            1d,
+            TimelineSnapbarLayout.FadeInEndRatio + TimelineSnapbarLayout.FadeOutStartRatio,
+            10);
     }
 
     [Fact]
