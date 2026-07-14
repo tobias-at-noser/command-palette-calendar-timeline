@@ -219,7 +219,8 @@ public sealed class OutlookCalendarSnapshotSource : ICalendarSnapshotSource
                             calendarId,
                             calendarName,
                             calendarColor,
-                            LoadCategories(appointment, outlookNamespace)));
+                            LoadCategories(appointment, outlookNamespace),
+                            Convert.ToBoolean(appointment.AllDayEvent)));
                     }
                     catch (OperationCanceledException)
                     {

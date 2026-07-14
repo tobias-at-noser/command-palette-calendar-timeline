@@ -58,6 +58,14 @@ public sealed class OutlookCalendarSnapshotSourceTests
     }
 
     [Fact]
+    public void OutlookSourceReadsAllDayEventIdentity()
+    {
+        var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));
+
+        Assert.Contains("Convert.ToBoolean(appointment.AllDayEvent)", source);
+    }
+
+    [Fact]
     public void OutlookSourceReleasesCollectedCalendarFoldersInOneEnclosingFinally()
     {
         var source = File.ReadAllText(WorkerFile("OutlookCalendarSnapshotSource.cs"));

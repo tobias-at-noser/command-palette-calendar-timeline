@@ -89,6 +89,26 @@ public sealed class OutlookAppointmentMapperTests
     }
 
     [Fact]
+    public void CreateSnapshotPreservesAllDayEventIdentity()
+    {
+        var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);
+        var rawAppointment = new OutlookAppointmentData(
+            "all-day",
+            "All Day",
+            "",
+            now.Date,
+            now.Date.AddDays(1),
+            false,
+            false,
+            null,
+            IsAllDayEvent: true);
+
+        var snapshot = OutlookAppointmentMapper.CreateSnapshot(now, [rawAppointment]);
+
+        Assert.True(snapshot.Appointments[0].IsAllDayEvent);
+    }
+
+    [Fact]
     public void CreateSnapshotPreservesCalendarMetadataAndCategoryOrderWithPartialSuccessStatus()
     {
         var now = new DateTimeOffset(2026, 7, 10, 10, 0, 0, TimeSpan.Zero);

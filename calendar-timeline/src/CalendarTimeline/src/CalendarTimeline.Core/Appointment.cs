@@ -16,7 +16,8 @@ public sealed record Appointment
         string CalendarId = "",
         string CalendarName = "",
         string? CalendarColor = null,
-        IReadOnlyList<CalendarCategory>? Categories = null)
+        IReadOnlyList<CalendarCategory>? Categories = null,
+        bool IsAllDayEvent = false)
     {
         this.Id = Id;
         this.Title = Title;
@@ -30,6 +31,7 @@ public sealed record Appointment
         this.CalendarName = CalendarName;
         this.CalendarColor = CalendarColor;
         this.Categories = Categories ?? [];
+        this.IsAllDayEvent = IsAllDayEvent;
     }
 
     public string Id { get; init; }
@@ -59,4 +61,6 @@ public sealed record Appointment
         get => categories;
         init => categories = value ?? [];
     }
+
+    public bool IsAllDayEvent { get; init; }
 }

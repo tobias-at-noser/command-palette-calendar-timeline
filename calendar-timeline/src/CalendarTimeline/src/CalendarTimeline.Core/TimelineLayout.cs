@@ -5,6 +5,7 @@ public static class TimelineLayout
     public static IReadOnlyList<TimelineBlock> Arrange(IReadOnlyList<Appointment> appointments)
     {
         var ordered = appointments
+            .Where(appointment => !appointment.IsAllDayEvent)
             .OrderBy(appointment => appointment.Start)
             .ThenBy(appointment => appointment.End)
             .ThenBy(appointment => appointment.Id, StringComparer.Ordinal)

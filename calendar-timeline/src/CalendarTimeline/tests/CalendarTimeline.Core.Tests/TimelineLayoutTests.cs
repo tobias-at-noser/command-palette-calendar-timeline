@@ -44,8 +44,20 @@ public sealed class TimelineLayoutTests
         Assert.Equal([0, 1, 2], blocks.Select(block => block.Lane));
     }
 
-    private static Appointment CreateAppointment(string id, DateTimeOffset start, DateTimeOffset end)
+    [Fact]
+    public void ArrangeExcludesAllDayAppointmentsFromTimedLanes()
     {
-        return new Appointment(id, $"Appointment {id}", "Room", start, end, false, false, null);
+        var start = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
+        var allDay = CreateAppointment("all-day", start.Date, start.Date.AddDays(1), isAllDayEvent: true);
+        var timed = CreateAppointment("timed", start, start.AddMinutes(30));
+
+        var blocks = TimelineLayout.Arrange([allDay, timed]);
+
+        Assert.Equal(["timed"], blocks.Select(block => block.Appointment.Id));
+    }
+
+    private static Appointment CreateAppointment(string id, DateTimeOffset start, DateTimeOffset end, bool isAllDayEvent = false)
+    {
+        return new Appointment(id, $"Appointment {id}", "Room", start, end, false, false, null, IsAllDayEvent: isAllDayEvent);
     }
 }

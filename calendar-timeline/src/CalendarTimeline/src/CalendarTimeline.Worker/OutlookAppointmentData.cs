@@ -14,4 +14,5 @@ public sealed record OutlookAppointmentData(
     string CalendarId = "",
     string CalendarName = "",
     string? CalendarColor = null,
-    IReadOnlyList<CalendarCategory>? Categories = null);
+    IReadOnlyList<CalendarCategory>? Categories = null,
+    bool IsAllDayEvent = false);
