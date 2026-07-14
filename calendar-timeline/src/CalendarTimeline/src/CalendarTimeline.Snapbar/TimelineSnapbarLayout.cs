@@ -51,8 +51,8 @@ public static class TimelineSnapbarLayout
         double minimumWidth)
     {
         timelineWidth = Math.Max(0, timelineWidth);
-        var width = Math.Min(timelineWidth, Math.Max(0, Math.Max(minimumWidth, timelineWidth * widthRatio)));
-        var left = Math.Clamp(timelineWidth * startRatio, 0, timelineWidth - width);
+        var left = timelineWidth * startRatio;
+        var width = Math.Max(minimumWidth, timelineWidth * widthRatio);
         return (left, width);
     }
 }
