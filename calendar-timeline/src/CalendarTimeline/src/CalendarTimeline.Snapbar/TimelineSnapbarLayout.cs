@@ -8,6 +8,8 @@ public static class TimelineSnapbarLayout
     public const double RailHeight = 2;
     public const double MinimumBlockWidth = 52;
     public const double NowRatio = 1d / 9d;
+    public const double FadeInEndRatio = NowRatio;
+    public const double FadeOutStartRatio = 1d - NowRatio;
 
     public static double GetTimelineHeight(int laneCount)
     {
@@ -51,8 +53,8 @@ public static class TimelineSnapbarLayout
         double minimumWidth)
     {
         timelineWidth = Math.Max(0, timelineWidth);
-        var width = Math.Min(timelineWidth, Math.Max(0, Math.Max(minimumWidth, timelineWidth * widthRatio)));
-        var left = Math.Clamp(timelineWidth * startRatio, 0, timelineWidth - width);
+        var left = timelineWidth * startRatio;
+        var width = Math.Max(minimumWidth, timelineWidth * widthRatio);
         return (left, width);
     }
 }

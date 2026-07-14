@@ -28,7 +28,7 @@ public sealed class TimelineVisualProjectorTests
     }
 
     [Fact]
-    public void Project_ClampsRatiosForAppointmentsOutsideWindow()
+    public void Project_PreservesRatiosForAppointmentsOutsideWindow()
     {
         var now = new DateTimeOffset(2026, 7, 9, 9, 30, 0, TimeSpan.Zero);
         var windowStart = new DateTimeOffset(2026, 7, 9, 9, 0, 0, TimeSpan.Zero);
@@ -43,8 +43,8 @@ public sealed class TimelineVisualProjectorTests
         var blocks = TimelineVisualProjector.Project(snapshot);
 
         Assert.Single(blocks);
-        Assert.Equal(0, blocks[0].StartRatio);
-        Assert.Equal(1, blocks[0].EndRatio);
+        Assert.Equal(-0.5, blocks[0].StartRatio, 3);
+        Assert.Equal(1.5, blocks[0].EndRatio, 3);
     }
 
     [Fact]

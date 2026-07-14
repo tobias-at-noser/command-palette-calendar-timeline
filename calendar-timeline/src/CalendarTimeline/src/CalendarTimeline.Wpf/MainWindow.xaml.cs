@@ -16,7 +16,6 @@ public partial class MainWindow : Window
 {
     private const double GridVerticalMargin = 6;
     private const double StatusRowHeight = 16;
-    private const double TimelineWidthPadding = 24;
     private const int WmNcHitTest = 0x0084;
     private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
@@ -36,13 +35,17 @@ public partial class MainWindow : Window
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
     private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
     private const uint SwpFrameChanged = 0x0020;
+    private static readonly IntPtr HwndTopmost = new(-1);
     private readonly TimelineSnapbarViewModel viewModel;
     private readonly SnapbarWindowSettingsStore settingsStore = new();
     private readonly DispatcherTimer refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
     private bool refreshInProgress;
     private bool isUpdatingLayout;
+    private bool isUpdatingWindowHeight;
     private double minimumWindowHeight;
+    private double manualWindowHeight;
     private HwndSource? hwndSource;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -112,10 +115,12 @@ public partial class MainWindow : Window
         Width = SnapbarWindowSettings.DefaultWidth;
         Left = 0;
         Top = 0;
+        manualWindowHeight = Height;
         UpdateWindowHeight();
         RestoreWindowSettings();
 
         Loaded += OnLoaded;
+        Deactivated += OnDeactivated;
         Closed += OnClosed;
         SourceInitialized += OnSourceInitialized;
         LocationChanged += OnLocationChanged;
@@ -128,6 +133,23 @@ public partial class MainWindow : Window
     {
         await RefreshAsync();
         refreshTimer.Start();
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        if (hwndSource is null)
+        {
+            return;
+        }
+
+        SetWindowPos(
+            hwndSource.Handle,
+            HwndTopmost,
+            0,
+            0,
+            0,
+            0,
+            SwpNoSize | SwpNoMove | SwpNoActivate);
     }
 
     private async void OnRefreshTimerTick(object? sender, EventArgs e)
@@ -150,6 +172,7 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        Deactivated -= OnDeactivated;
         if (hwndSource is not null)
         {
             hwndSource.RemoveHook(WndProc);
@@ -262,6 +285,11 @@ public partial class MainWindow : Window
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        if (!isUpdatingWindowHeight)
+        {
+            manualWindowHeight = Math.Max(MinHeight, Height);
+        }
+
         TryUpdateLayoutMetrics();
         PersistWindowSettings();
     }
@@ -307,7 +335,12 @@ public partial class MainWindow : Window
     {
         var laneCount = viewModel.Blocks.Count == 0 ? 1 : viewModel.Blocks.Max(block => block.Lane) + 1;
         var timelineHeight = TimelineSnapbarLayout.GetTimelineHeight(laneCount);
-        var timelineWidth = Math.Max(0, ActualWidth - TimelineWidthPadding);
+        var timelineWidth = TimelineGrid.ActualWidth;
+        TimelineFadeMask.StartPoint = new Point(0, 0);
+        TimelineFadeMask.EndPoint = new Point(timelineWidth, 0);
+        BlocksViewport.Width = timelineWidth;
+        BlocksViewport.Height = timelineHeight;
+        BlocksCanvas.Width = timelineWidth;
         BlocksCanvas.Height = timelineHeight;
         TimelineGrid.Height = timelineHeight;
         var railBounds = TimelineSnapbarLayout.GetRailBounds();
@@ -320,6 +353,22 @@ public partial class MainWindow : Window
             nowLineBounds.Top,
             0,
             0);
+        var now = DateTimeOffset.Now;
+        NowTimeTextBlock.Text = TimelineTimeDisplay.GetCurrentTime(now);
+        NowTimeIndicator.ToolTip = TimelineTimeDisplay.GetDateTooltip(now);
+        NowTimeIndicator.Margin = new Thickness(
+            0,
+            0,
+            timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4,
+            timelineHeight - nowLineBounds.Bottom);
+        CountdownIndicator.Margin = new Thickness(
+            timelineWidth * TimelineSnapbarLayout.NowRatio + 8,
+            nowLineBounds.Top,
+            0,
+            0);
+        var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);
+        CountdownTextBlock.Text = countdown ?? string.Empty;
+        CountdownIndicator.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 
@@ -344,8 +393,23 @@ public partial class MainWindow : Window
         var requiredHeight = GridVerticalMargin + (timelineHeight ?? TimelineSnapbarLayout.GetTimelineHeight(1))
             + (hasStatus ? StatusRowHeight : 0);
         minimumWindowHeight = requiredHeight;
-        Height = TimelineSnapbarLayout.GetWindowHeight(Height, requiredHeight);
-        MinHeight = minimumWindowHeight;
+        var targetHeight = TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight);
+
+        try
+        {
+            isUpdatingWindowHeight = true;
+            MinHeight = minimumWindowHeight;
+            if (Height == targetHeight)
+            {
+                return;
+            }
+
+            Height = targetHeight;
+        }
+        finally
+        {
+            isUpdatingWindowHeight = false;
+        }
     }
 
     private void RestoreWindowSettings()
@@ -362,6 +426,7 @@ public partial class MainWindow : Window
 
         Width = settings.Width;
         Height = settings.Height;
+        manualWindowHeight = Math.Max(MinHeight, Height);
         Left = settings.Left;
         Top = settings.Top;
     }
@@ -461,7 +526,7 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private static Button CreateBlockButton(TimelineBlockViewModel block, double width)
+    private Button CreateBlockButton(TimelineBlockViewModel block, double width)
     {
         var colors = TimelineBubbleColors.Resolve(
             block.CategoryColors,
@@ -477,6 +542,7 @@ public partial class MainWindow : Window
             VerticalContentAlignment = VerticalAlignment.Stretch,
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
+            Style = (Style)FindResource("TimelineBlockButtonStyle"),
             ToolTip = new TextBlock
             {
                 Text = block.Tooltip,
@@ -500,27 +566,35 @@ public partial class MainWindow : Window
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(8, 3, 8, 3),
             Effect = CreateBubbleShadow(block.IsRunning),
-            Child = new StackPanel
+            Child = CreateBubbleLabel(block, foreground),
+        };
+    }
+
+    private static DockPanel CreateBubbleLabel(TimelineBlockViewModel block, Brush foreground)
+    {
+        var timeText = new TextBlock
+        {
+            Text = block.StartTime + " · ",
+            Foreground = foreground,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.NoWrap,
+        };
+        DockPanel.SetDock(timeText, Dock.Left);
+
+        return new DockPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            LastChildFill = true,
+            Children =
             {
-                VerticalAlignment = VerticalAlignment.Center,
-                Children =
+                timeText,
+                new TextBlock
                 {
-                    new TextBlock
-                    {
-                        Text = block.Title,
-                        Foreground = foreground,
-                        FontWeight = FontWeights.SemiBold,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        TextWrapping = TextWrapping.NoWrap,
-                    },
-                    new TextBlock
-                    {
-                        Text = block.StartTime,
-                        Foreground = foreground,
-                        FontSize = 10,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        TextWrapping = TextWrapping.NoWrap,
-                    },
+                    Text = block.Title,
+                    Foreground = foreground,
+                    FontWeight = FontWeights.SemiBold,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    TextWrapping = TextWrapping.NoWrap,
                 },
             },
         };

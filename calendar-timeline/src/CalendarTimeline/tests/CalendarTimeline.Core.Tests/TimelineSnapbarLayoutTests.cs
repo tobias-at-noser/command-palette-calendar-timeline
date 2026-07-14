@@ -87,13 +87,19 @@ public sealed class TimelineSnapbarLayoutTests
     }
 
     [Fact]
-    public void NowRatio_MatchesTheConfiguredCalendarWindow()
+    public void FadeRatios_MatchTheConfiguredCalendarWindow()
     {
         Assert.Equal(1d / 9d, TimelineSnapbarLayout.NowRatio, 10);
+        Assert.Equal(TimelineSnapbarLayout.NowRatio, TimelineSnapbarLayout.FadeInEndRatio, 10);
+        Assert.Equal(8d / 9d, TimelineSnapbarLayout.FadeOutStartRatio, 10);
+        Assert.Equal(
+            1d,
+            TimelineSnapbarLayout.FadeInEndRatio + TimelineSnapbarLayout.FadeOutStartRatio,
+            10);
     }
 
     [Fact]
-    public void GetBlockBounds_ClampsAMinimumWidthBubbleAtTheRightEdge()
+    public void GetBlockBounds_PreservesMinimumWidthWhenEnteringFromTheRight()
     {
         var bounds = TimelineSnapbarLayout.GetBlockBounds(
             100,
@@ -101,22 +107,33 @@ public sealed class TimelineSnapbarLayoutTests
             0.01,
             TimelineSnapbarLayout.MinimumBlockWidth);
 
-        Assert.Equal(48, bounds.Left);
+        Assert.Equal(95, bounds.Left);
         Assert.Equal(52, bounds.Width);
-        Assert.Equal(100, bounds.Left + bounds.Width);
     }
 
     [Fact]
-    public void GetBlockBounds_FitsTheBubbleInsideANarrowTimeline()
+    public void GetBlockBounds_PreservesMinimumWidthWhenLeavingToTheLeft()
     {
         var bounds = TimelineSnapbarLayout.GetBlockBounds(
-            20,
-            0.8,
-            0.1,
+            100,
+            -0.10,
+            0.20,
             TimelineSnapbarLayout.MinimumBlockWidth);
 
-        Assert.Equal(0, bounds.Left);
-        Assert.Equal(20, bounds.Width);
-        Assert.Equal(20, bounds.Left + bounds.Width);
+        Assert.Equal(-10, bounds.Left);
+        Assert.Equal(52, bounds.Width);
+    }
+
+    [Fact]
+    public void GetBlockBounds_PreservesBoundsForBlocksSpanningTheViewport()
+    {
+        var bounds = TimelineSnapbarLayout.GetBlockBounds(
+            100,
+            -0.20,
+            1.40,
+            TimelineSnapbarLayout.MinimumBlockWidth);
+
+        Assert.Equal(-20, bounds.Left);
+        Assert.Equal(140, bounds.Width);
     }
 }

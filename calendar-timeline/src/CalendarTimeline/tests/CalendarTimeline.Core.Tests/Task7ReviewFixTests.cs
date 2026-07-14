@@ -175,15 +175,193 @@ public sealed class Task7ReviewFixTests
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
         var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
         var nowLine = xaml[xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal), StringComparison.Ordinal)];
-        var titleTextBlock = source[source.IndexOf("Text = block.Title,", StringComparison.Ordinal)..source.IndexOf("},", source.IndexOf("Text = block.Title,", StringComparison.Ordinal), StringComparison.Ordinal)];
-        var timeTextBlock = source[source.IndexOf("Text = block.StartTime,", StringComparison.Ordinal)..source.IndexOf("},", source.IndexOf("Text = block.StartTime,", StringComparison.Ordinal), StringComparison.Ordinal)];
 
         Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
         Assert.Contains("IsHitTestVisible=\"False\"", nowLine);
-        Assert.Contains("Foreground = foreground,", titleTextBlock);
-        Assert.Contains("Foreground = foreground,", timeTextBlock);
-        Assert.DoesNotContain("Opacity", timeTextBlock);
+        Assert.Contains("Text = block.StartTime + \" · \"", source);
+        Assert.Contains("Text = block.Title,", source);
+        Assert.Contains("TextTrimming = TextTrimming.CharacterEllipsis", source);
         Assert.Contains("CreateBubbleFill(colors.LightFill, colors.DarkFill)", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceSeparatesManualHeightFromAutomaticLaneHeight()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var sizeChanged = source[
+            source.IndexOf("private void OnSizeChanged", StringComparison.Ordinal)..
+            source.IndexOf("private void OnLocationChanged", StringComparison.Ordinal)];
+        var updateWindowHeight = source[
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)..
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)];
+
+        Assert.Contains("private double manualWindowHeight;", source);
+        Assert.Contains("private bool isUpdatingWindowHeight;", source);
+        Assert.Contains("if (!isUpdatingWindowHeight)", sizeChanged);
+        Assert.Contains("manualWindowHeight = Math.Max(MinHeight, Height);", sizeChanged);
+        Assert.Contains("TimelineSnapbarLayout.GetWindowHeight(manualWindowHeight, requiredHeight)", source);
+        Assert.True(
+            IndexOf(updateWindowHeight, "isUpdatingWindowHeight = true;")
+            < IndexOf(updateWindowHeight, "MinHeight = minimumWindowHeight;"));
+        Assert.True(
+            IndexOf(updateWindowHeight, "MinHeight = minimumWindowHeight;")
+            < IndexOf(updateWindowHeight, "Height = targetHeight;"));
+        Assert.True(
+            IndexOf(updateWindowHeight, "Height = targetHeight;")
+            < IndexOf(updateWindowHeight, "isUpdatingWindowHeight = false;"));
+    }
+
+    [Fact]
+    public void SnapbarSourceUsesRestoredHeightAsTheManualFloorBeforeAutomaticLayoutUpdates()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var restoreWindowSettings = source[
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)..
+            source.IndexOf("private void PersistWindowSettings", StringComparison.Ordinal)];
+        var constructor = source[
+            source.IndexOf("public MainWindow(TimelineSnapbarViewModel viewModel)", StringComparison.Ordinal)..
+            source.IndexOf("private async void OnLoaded", StringComparison.Ordinal)];
+
+        Assert.True(
+            IndexOf(restoreWindowSettings, "Height = settings.Height;")
+            < IndexOf(restoreWindowSettings, "manualWindowHeight = Math.Max(MinHeight, Height);"));
+        Assert.True(
+            IndexOf(constructor, "RestoreWindowSettings();")
+            < IndexOf(constructor, "SizeChanged += OnSizeChanged;"));
+    }
+
+    [Fact]
+    public void SnapbarSourceRendersPolishedBlocksAndNowIndicators()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+
+        Assert.Contains("<Grid.OpacityMask>", xaml);
+        Assert.Contains("x:Key=\"TimelineBlockButtonStyle\"", xaml);
+        Assert.Contains("CornerRadius=\"5\"", xaml);
+        Assert.Contains("HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\"", xaml);
+        Assert.Contains("VerticalAlignment=\"{TemplateBinding VerticalContentAlignment}\"", xaml);
+        Assert.Contains("x:Name=\"NowTimeTextBlock\"", xaml);
+        Assert.Contains("x:Name=\"CountdownTextBlock\"", xaml);
+        Assert.Contains("Style = (Style)FindResource(\"TimelineBlockButtonStyle\")", source);
+        Assert.Contains("Text = block.StartTime + \" · \"", source);
+        Assert.Contains("TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks)", source);
+        Assert.Contains("TimelineTimeDisplay.GetDateTooltip(now)", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceKeepsTimelineFadesFixedAndSeparatesTimeIndicators()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var blocksViewportStart = xaml.IndexOf("x:Name=\"BlocksViewport\"", StringComparison.Ordinal);
+        var nowTime = xaml[xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var countdown = xaml[xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+
+        Assert.True(blocksViewportStart >= 0, "Could not find BlocksViewport.");
+        var blocksViewport = xaml[blocksViewportStart..];
+        Assert.Contains("<Grid.OpacityMask>", blocksViewport);
+        Assert.Contains("Offset=\"0\"", blocksViewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}\"", blocksViewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}\"", blocksViewport);
+        Assert.Contains("Offset=\"1\"", blocksViewport);
+        Assert.Contains("HorizontalAlignment=\"Right\"", nowTime);
+        Assert.Contains("VerticalAlignment=\"Bottom\"", nowTime);
+        Assert.Contains("HorizontalAlignment=\"Left\"", countdown);
+        Assert.Contains("VerticalAlignment=\"Top\"", countdown);
+        Assert.Contains("timelineHeight - nowLineBounds.Bottom", source);
+        Assert.Contains("timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4", source);
+        Assert.Contains("CountdownIndicator.Margin", source);
+    }
+
+    [Fact]
+    public void SnapbarCountdownIsTopAlignedOffsetAndHintsAtTheNextAppointment()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var countdownStart = xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal);
+        var countdown = xaml[countdownStart..xaml.IndexOf("</Border>", countdownStart, StringComparison.Ordinal)];
+
+        Assert.Contains("VerticalAlignment=\"Top\"", countdown);
+        Assert.Contains("x:Name=\"CountdownTranslation\"", countdown);
+        Assert.Contains("<EventTrigger RoutedEvent=\"FrameworkElement.Loaded\">", countdown);
+        Assert.Contains("Storyboard.TargetName=\"CountdownTranslation\"", countdown);
+        Assert.Contains("Storyboard.TargetProperty=\"X\"", countdown);
+        Assert.Contains("To=\"3\"", countdown);
+        Assert.Contains("Duration=\"0:0:1.2\"", countdown);
+        Assert.Contains("AutoReverse=\"True\"", countdown);
+        Assert.Contains("RepeatBehavior=\"Forever\"", countdown);
+        Assert.Contains("timelineWidth * TimelineSnapbarLayout.NowRatio + 8", source);
+        Assert.Contains("nowLineBounds.Top", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceUsesAClippedMaskedViewportForUnboundedBlocks()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var viewportStart = xaml.IndexOf("<Grid x:Name=\"BlocksViewport\"", StringComparison.Ordinal);
+        var canvasStart = xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal);
+        var nowLine = xaml[xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowLine\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var nowTime = xaml[xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"NowTimeIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+        var countdown = xaml[xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal)..xaml.IndexOf("</Border>", xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal), StringComparison.Ordinal)];
+
+        Assert.True(viewportStart >= 0, "Could not find BlocksViewport.");
+        Assert.True(canvasStart > viewportStart, "BlocksCanvas must be a child of BlocksViewport.");
+        var viewport = xaml[viewportStart..xaml.IndexOf("</Grid>", canvasStart, StringComparison.Ordinal)];
+        var blocksCanvas = xaml[canvasStart..xaml.IndexOf("/>", canvasStart, StringComparison.Ordinal)];
+        Assert.Contains("Panel.ZIndex=\"2\"", viewport);
+        Assert.Contains("ClipToBounds=\"True\"", viewport);
+        Assert.Contains("<Grid.OpacityMask>", viewport);
+        Assert.Contains("x:Name=\"TimelineFadeMask\"", viewport);
+        Assert.Contains("StartPoint=\"0,0\"", viewport);
+        Assert.Contains("MappingMode=\"Absolute\"", viewport);
+        Assert.Contains("Offset=\"0\"", viewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}\"", viewport);
+        Assert.Contains("Offset=\"{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}\"", viewport);
+        Assert.Contains("Offset=\"1\"", viewport);
+        Assert.DoesNotContain("MappingMode=\"RelativeToBoundingBox\"", viewport);
+        Assert.DoesNotContain("Canvas.OpacityMask", blocksCanvas);
+        Assert.Contains("Panel.ZIndex=\"3\"", nowLine);
+        Assert.Contains("Panel.ZIndex=\"4\"", nowTime);
+        Assert.Contains("Panel.ZIndex=\"4\"", countdown);
+    }
+
+    [Fact]
+    public void SnapbarSourceUsesTimelineGridDimensionsForBlockGeometryAndAbsoluteMasking()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var viewportStart = xaml.IndexOf("<Grid x:Name=\"BlocksViewport\"", StringComparison.Ordinal);
+        var canvasStart = xaml.IndexOf("<Canvas x:Name=\"BlocksCanvas\"", StringComparison.Ordinal);
+        var viewport = xaml[viewportStart..xaml.IndexOf("</Grid>", canvasStart, StringComparison.Ordinal)];
+        var updateLayout = source[
+            source.IndexOf("private void UpdateLayoutMetrics", StringComparison.Ordinal)..
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)];
+
+        Assert.Contains("var timelineWidth = TimelineGrid.ActualWidth;", updateLayout);
+        Assert.Contains("TimelineFadeMask.StartPoint = new Point(0, 0);", updateLayout);
+        Assert.Contains("TimelineFadeMask.EndPoint = new Point(timelineWidth, 0);", updateLayout);
+        Assert.Contains("BlocksViewport.Width = timelineWidth;", updateLayout);
+        Assert.Contains("BlocksViewport.Height = timelineHeight;", updateLayout);
+        Assert.Contains("BlocksCanvas.Width = timelineWidth;", updateLayout);
+        Assert.Contains("BlocksCanvas.Height = timelineHeight;", updateLayout);
+        Assert.Contains("HorizontalAlignment=\"Left\"", viewport);
+        Assert.Contains("VerticalAlignment=\"Top\"", viewport);
+        Assert.Equal(2, CountOccurrences(xaml, "TimelineSnapbarLayout.FadeInEndRatio"));
+        Assert.Equal(2, CountOccurrences(xaml, "TimelineSnapbarLayout.FadeOutStartRatio"));
+    }
+
+    [Fact]
+    public void SnapbarSourceRestoresTopmostZOrderWithoutTakingFocusAfterDeactivation()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var handlerIndex = IndexOf(source, "private void OnDeactivated");
+        var handler = source[handlerIndex..source.IndexOf("private void OnClosed", handlerIndex, StringComparison.Ordinal)];
+
+        Assert.Contains("Deactivated += OnDeactivated;", source);
+        Assert.Contains("private const uint SwpNoActivate = 0x0010;", source);
+        Assert.Contains("HwndTopmost", handler);
+        Assert.Contains("SwpNoActivate", handler);
     }
 
     private static int IndexOf(string source, string value)
@@ -196,6 +374,20 @@ public sealed class Task7ReviewFixTests
         var index = source.IndexOf(value, startIndex, StringComparison.Ordinal);
         Assert.True(index >= 0, $"Could not find '{value}' in TrayApplicationContext.cs.");
         return index;
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        var startIndex = 0;
+
+        while ((startIndex = source.IndexOf(value, startIndex, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            startIndex += value.Length;
+        }
+
+        return count;
     }
 
     private static string ResolveTrayApplicationContextPath(string? testAssemblyDirectory = null)

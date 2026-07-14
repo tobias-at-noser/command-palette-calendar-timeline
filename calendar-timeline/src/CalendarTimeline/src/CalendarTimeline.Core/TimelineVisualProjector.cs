@@ -34,8 +34,7 @@ public static class TimelineVisualProjector
             return 0;
         }
 
-        var ratio = (point - windowStart).TotalMilliseconds / windowDuration.TotalMilliseconds;
-        return Math.Clamp(ratio, 0, 1);
+        return (point - windowStart).TotalMilliseconds / windowDuration.TotalMilliseconds;
     }
 
     private static string BuildSubtitle(Appointment appointment)

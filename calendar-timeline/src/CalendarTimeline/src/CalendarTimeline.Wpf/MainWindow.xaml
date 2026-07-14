@@ -6,11 +6,47 @@
           Height="48"
           Width="400"
           WindowStyle="None"
-          ResizeMode="CanResize"
-          Topmost="True"
-          ShowInTaskbar="False"
-          AllowsTransparency="True"
-          Background="Transparent">
+           ResizeMode="CanResize"
+           Topmost="True"
+           ShowInTaskbar="False"
+           AllowsTransparency="True"
+           Background="Transparent">
+    <Window.Resources>
+      <Style x:Key="TimelineBlockButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Grid>
+                <ContentPresenter
+                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                <Border x:Name="InteractionHighlight"
+                        CornerRadius="5"
+                        BorderThickness="1"
+                        BorderBrush="Transparent"
+                        Background="Transparent"
+                        IsHitTestVisible="False" />
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="InteractionHighlight" Property="Background" Value="#24FFFFFF" />
+                  <Setter TargetName="InteractionHighlight" Property="BorderBrush" Value="#88FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                  <Setter TargetName="InteractionHighlight" Property="Background" Value="#40FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                  <Setter TargetName="InteractionHighlight" Property="BorderBrush" Value="#CCFFFFFF" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </Window.Resources>
     <Grid x:Name="RootGrid"
           Background="#01000000"
         MouseEnter="OnRootMouseEnter"
@@ -40,8 +76,10 @@
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
               <GradientStop Color="#001B2635" Offset="0" />
-              <GradientStop Color="#CC6A8296" Offset="0.12" />
-              <GradientStop Color="#CC6A8296" Offset="0.88" />
+              <GradientStop Color="#CC6A8296"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}" />
+              <GradientStop Color="#CC6A8296"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}" />
               <GradientStop Color="#001B2635" Offset="1" />
             </LinearGradientBrush>
           </Border.Background>
@@ -55,9 +93,70 @@
                  IsHitTestVisible="False">
           <Border.Effect>
             <DropShadowEffect Color="#80000000" ShadowDepth="0" BlurRadius="2" Opacity="0.55" />
-          </Border.Effect>
+           </Border.Effect>
         </Border>
-       <Canvas x:Name="BlocksCanvas" Panel.ZIndex="2" />
+        <Border x:Name="NowTimeIndicator"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Padding="4,1"
+                Background="#B01B2635"
+                CornerRadius="3"
+                Panel.ZIndex="4">
+          <TextBlock x:Name="NowTimeTextBlock"
+                     Foreground="White"
+                     FontSize="10"
+                     FontWeight="SemiBold" />
+        </Border>
+        <Border x:Name="CountdownIndicator"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Padding="4,1"
+                Background="#B01B2635"
+                CornerRadius="3"
+                Panel.ZIndex="4">
+          <Border.RenderTransform>
+            <TranslateTransform x:Name="CountdownTranslation" />
+          </Border.RenderTransform>
+          <Border.Triggers>
+            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="CountdownTranslation"
+                                   Storyboard.TargetProperty="X"
+                                   From="0"
+                                   To="3"
+                                   Duration="0:0:1.2"
+                                   AutoReverse="True"
+                                   RepeatBehavior="Forever" />
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+          </Border.Triggers>
+          <TextBlock x:Name="CountdownTextBlock"
+                     Foreground="#DFFFFFFF"
+                     FontSize="10" />
+        </Border>
+        <Grid x:Name="BlocksViewport"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Top"
+               Panel.ZIndex="2"
+               ClipToBounds="True">
+          <Grid.OpacityMask>
+            <LinearGradientBrush x:Name="TimelineFadeMask"
+                                 StartPoint="0,0"
+                                 EndPoint="0,0"
+                                 MappingMode="Absolute">
+              <GradientStop Offset="0" Color="Transparent" />
+              <GradientStop Color="White"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeInEndRatio}" />
+              <GradientStop Color="White"
+                            Offset="{x:Static snapbar:TimelineSnapbarLayout.FadeOutStartRatio}" />
+              <GradientStop Offset="1" Color="Transparent" />
+            </LinearGradientBrush>
+          </Grid.OpacityMask>
+
+          <Canvas x:Name="BlocksCanvas" />
+        </Grid>
       </Grid>
 
       <TextBlock x:Name="StatusTextBlock"
