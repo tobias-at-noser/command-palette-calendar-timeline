@@ -107,11 +107,29 @@
         </Border>
         <Border x:Name="CountdownIndicator"
                 HorizontalAlignment="Left"
-                VerticalAlignment="Center"
+                VerticalAlignment="Top"
                 Padding="4,1"
                 Background="#B01B2635"
                 CornerRadius="3"
                 Panel.ZIndex="4">
+          <Border.RenderTransform>
+            <TranslateTransform x:Name="CountdownTranslation" />
+          </Border.RenderTransform>
+          <Border.Triggers>
+            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="CountdownTranslation"
+                                   Storyboard.TargetProperty="X"
+                                   From="0"
+                                   To="3"
+                                   Duration="0:0:1.2"
+                                   AutoReverse="True"
+                                   RepeatBehavior="Forever" />
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+          </Border.Triggers>
           <TextBlock x:Name="CountdownTextBlock"
                      Foreground="#DFFFFFFF"
                      FontSize="10" />

@@ -360,8 +360,8 @@ public partial class MainWindow : Window
             timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4,
             timelineHeight - nowLineBounds.Bottom);
         CountdownIndicator.Margin = new Thickness(
-            timelineWidth * TimelineSnapbarLayout.NowRatio + 4,
-            0,
+            timelineWidth * TimelineSnapbarLayout.NowRatio + 8,
+            nowLineBounds.Top,
             0,
             0);
         var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);

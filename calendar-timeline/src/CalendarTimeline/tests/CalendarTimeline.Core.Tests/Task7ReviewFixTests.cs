@@ -268,10 +268,31 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("HorizontalAlignment=\"Right\"", nowTime);
         Assert.Contains("VerticalAlignment=\"Bottom\"", nowTime);
         Assert.Contains("HorizontalAlignment=\"Left\"", countdown);
-        Assert.Contains("VerticalAlignment=\"Center\"", countdown);
+        Assert.Contains("VerticalAlignment=\"Top\"", countdown);
         Assert.Contains("timelineHeight - nowLineBounds.Bottom", source);
         Assert.Contains("timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4", source);
         Assert.Contains("CountdownIndicator.Margin", source);
+    }
+
+    [Fact]
+    public void SnapbarCountdownIsTopAlignedOffsetAndHintsAtTheNextAppointment()
+    {
+        var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var countdownStart = xaml.IndexOf("<Border x:Name=\"CountdownIndicator\"", StringComparison.Ordinal);
+        var countdown = xaml[countdownStart..xaml.IndexOf("</Border>", countdownStart, StringComparison.Ordinal)];
+
+        Assert.Contains("VerticalAlignment=\"Top\"", countdown);
+        Assert.Contains("x:Name=\"CountdownTranslation\"", countdown);
+        Assert.Contains("<EventTrigger RoutedEvent=\"FrameworkElement.Loaded\">", countdown);
+        Assert.Contains("Storyboard.TargetName=\"CountdownTranslation\"", countdown);
+        Assert.Contains("Storyboard.TargetProperty=\"X\"", countdown);
+        Assert.Contains("To=\"3\"", countdown);
+        Assert.Contains("Duration=\"0:0:1.2\"", countdown);
+        Assert.Contains("AutoReverse=\"True\"", countdown);
+        Assert.Contains("RepeatBehavior=\"Forever\"", countdown);
+        Assert.Contains("timelineWidth * TimelineSnapbarLayout.NowRatio + 8", source);
+        Assert.Contains("nowLineBounds.Top", source);
     }
 
     [Fact]
