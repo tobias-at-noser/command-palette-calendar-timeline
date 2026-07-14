@@ -180,6 +180,8 @@ public sealed class TimelineSnapbarViewModelTests
         Assert.Equal("Planning", block.Title);
         Assert.Equal("10:00", block.StartTime);
         Assert.Equal("10:00–10:30 · Room 42 · Arbeit · Fokus, Kunde", block.Tooltip);
+        Assert.Equal("30 Min.", block.Duration);
+        Assert.Equal("Room 42 · Arbeit · Fokus, Kunde", block.TooltipContext);
         Assert.Equal("work", block.CalendarIdentity);
         Assert.Equal("#3B82B6", block.CalendarColor);
         Assert.Equal(["#D83B01", "#8764B8"], block.CategoryColors);
@@ -198,6 +200,7 @@ public sealed class TimelineSnapbarViewModelTests
             "CalendarColor",
             "CalendarIdentity",
             "CategoryColors",
+            "Duration",
             "End",
             "HasTeamsUrl",
             "IsRunning",
@@ -209,6 +212,7 @@ public sealed class TimelineSnapbarViewModelTests
             "TeamsUrl",
             "Title",
             "Tooltip",
+            "TooltipContext",
             "WidthRatio",
         ], propertyNames);
     }

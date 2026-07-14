@@ -8,6 +8,8 @@ public sealed record TimelineVisualBlock(
     bool IsRunning,
     string DisplayTitle,
     string DisplayStartTime,
+    string DisplayDuration,
     string DisplaySubtitle,
+    string TooltipContext,
     string? CalendarColor,
     IReadOnlyList<string?> CategoryColors);

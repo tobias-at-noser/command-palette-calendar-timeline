@@ -80,6 +80,8 @@ public sealed class TimelineVisualProjectorTests
         var block = Assert.Single(TimelineVisualProjector.Project(snapshot));
 
         Assert.Equal("10:00–10:30 · Room 42 · Arbeit · Fokus, Kunde", block.DisplaySubtitle);
+        Assert.Equal("30 Min.", block.DisplayDuration);
+        Assert.Equal("Room 42 · Arbeit · Fokus, Kunde", block.TooltipContext);
         Assert.Equal("#3B82B6", block.CalendarColor);
         Assert.Equal(["#D83B01", "#8764B8"], block.CategoryColors);
     }

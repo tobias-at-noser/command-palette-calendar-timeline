@@ -19,7 +19,9 @@ public static class TimelineVisualProjector
                 appointment.Start <= snapshot.GeneratedAt && appointment.End > snapshot.GeneratedAt,
                 appointment.Title,
                 CalendarTextFormatter.FormatTimeRange(appointment.Start, appointment.End).Split('–')[0],
+                CalendarTextFormatter.FormatDuration(appointment.End - appointment.Start),
                 BuildSubtitle(appointment),
+                BuildTooltipContext(appointment),
                 appointment.CalendarColor,
                 appointment.Categories.Select(category => category.Color).ToArray()));
         }
@@ -39,10 +41,17 @@ public static class TimelineVisualProjector
 
     private static string BuildSubtitle(Appointment appointment)
     {
-        var parts = new List<string>
-        {
-            CalendarTextFormatter.FormatTimeRange(appointment.Start, appointment.End)
-        };
+        var timeRange = CalendarTextFormatter.FormatTimeRange(appointment.Start, appointment.End);
+        var tooltipContext = BuildTooltipContext(appointment);
+
+        return string.IsNullOrWhiteSpace(tooltipContext)
+            ? timeRange
+            : $"{timeRange} · {tooltipContext}";
+    }
+
+    private static string BuildTooltipContext(Appointment appointment)
+    {
+        var parts = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(appointment.Location))
         {
