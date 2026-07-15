@@ -111,4 +111,31 @@ public sealed class TimelineVisualProjectorTests
         Assert.Equal(["12:00–12:30", "Privat"], blocks[0].DisplaySubtitle.Split(" · "));
         Assert.Empty(blocks[0].CategoryColors);
     }
+
+    [Fact]
+    public void ProjectAllDayTags_OrdersSanitizesAndPreservesColorMetadata()
+    {
+        var now = new DateTimeOffset(2026, 7, 9, 12, 0, 0, TimeSpan.Zero);
+        var earlier = now.Date;
+        var snapshot = new CalendarSnapshot(
+            now,
+            now.AddHours(-2),
+            now.AddHours(2),
+            [
+                new Appointment("timed", "Timed", "Room", now, now.AddMinutes(30), false, false, null),
+                new Appointment("b", "Board Review", "Room", earlier.AddDays(1), earlier.AddDays(2), true, false, null,
+                    "private", "Privat", "#3B82B6", [new CalendarCategory("Finance", "#FF0000")], true),
+                new Appointment("a", "Earlier", "Room", earlier, earlier.AddDays(1), false, false, null,
+                    "work", "Arbeit", "#D83B01", [new CalendarCategory("Focus", "#8764B8")], true),
+            ],
+            null);
+
+        var tags = TimelineVisualProjector.ProjectAllDayTags(snapshot);
+
+        Assert.Equal(["a", "b"], tags.Select(tag => tag.Appointment.Id));
+        Assert.Equal("Privater Termin", tags[1].DisplayTitle);
+        Assert.Equal("#D83B01", tags[0].CalendarColor);
+        Assert.Equal(["#8764B8"], tags[0].CategoryColors);
+        Assert.Empty(tags[1].CategoryColors);
+    }
 }

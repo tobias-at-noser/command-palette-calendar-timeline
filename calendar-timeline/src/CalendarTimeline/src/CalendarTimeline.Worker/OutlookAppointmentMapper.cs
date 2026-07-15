@@ -26,7 +26,8 @@ public static class OutlookAppointmentMapper
                 appointment.CalendarId,
                 appointment.CalendarName,
                 appointment.CalendarColor,
-                appointment.Categories ?? [])))
+                appointment.Categories ?? [],
+                appointment.IsAllDayEvent)))
             .ToArray();
 
         return new CalendarSnapshot(

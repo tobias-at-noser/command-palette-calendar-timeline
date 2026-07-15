@@ -42,6 +42,7 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
     public const string UnavailableStatusText = "Kalenderdaten nicht verfügbar";
 
     private readonly ISnapbarSnapshotClient snapshotClient;
+    private AllDayTagViewModel? allDayTag;
     private IReadOnlyList<TimelineBlockViewModel> blocks = [];
     private string statusText = string.Empty;
 
@@ -51,6 +52,8 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
     }
 
     public IReadOnlyList<TimelineBlockViewModel> Blocks => blocks;
+
+    public AllDayTagViewModel? AllDayTag => allDayTag;
 
     public string StatusText
     {
@@ -95,8 +98,21 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
                     block.Appointment.Start,
                     block.Appointment.End))
                 .ToArray();
+            var tags = TimelineVisualProjector.ProjectAllDayTags(snapshot);
+            var firstTag = tags.FirstOrDefault();
+            var projectedAllDayTag = firstTag is null
+                ? null
+                : new AllDayTagViewModel(
+                    firstTag.DisplayTitle,
+                    tags.Count - 1,
+                    tags.Select(tag => tag.DisplayTitle).ToArray(),
+                    firstTag.Appointment.CalendarId,
+                    firstTag.CalendarColor,
+                    firstTag.CategoryColors,
+                    firstTag.Appointment.Start,
+                    firstTag.Appointment.End);
 
-            ApplyRefreshResult(projectedBlocks, snapshot.StatusMessage ?? string.Empty);
+            ApplyRefreshResult(projectedBlocks, projectedAllDayTag, snapshot.StatusMessage ?? string.Empty);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -104,19 +120,24 @@ public sealed class TimelineSnapbarViewModel : INotifyPropertyChanged
         }
         catch (InvalidOperationException exception) when (exception.Message.StartsWith($"{UnavailableStatusText}:", StringComparison.Ordinal))
         {
-            ApplyRefreshResult([], exception.Message);
+            ApplyRefreshResult([], null, exception.Message);
         }
         catch
         {
-            ApplyRefreshResult([], UnavailableStatusText);
+            ApplyRefreshResult([], null, UnavailableStatusText);
         }
     }
 
-    private void ApplyRefreshResult(IReadOnlyList<TimelineBlockViewModel> nextBlocks, string nextStatusText)
+    private void ApplyRefreshResult(
+        IReadOnlyList<TimelineBlockViewModel> nextBlocks,
+        AllDayTagViewModel? nextAllDayTag,
+        string nextStatusText)
     {
         blocks = nextBlocks;
+        allDayTag = nextAllDayTag;
         StatusText = nextStatusText;
         OnPropertyChanged(nameof(Blocks));
+        OnPropertyChanged(nameof(AllDayTag));
     }
 
     public static void OpenTeamsUrl(string url)

@@ -29,6 +29,12 @@ public static class TimelineSnapbarLayout
         return lane * LanePitch;
     }
 
+    public static double GetAllDayTagTop(int laneCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(laneCount, 1);
+        return BubbleHeight - AllDayTagLayout.TagHeight;
+    }
+
     public static double GetTimelineCenterY()
     {
         return BubbleHeight / 2;

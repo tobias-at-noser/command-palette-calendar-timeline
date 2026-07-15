@@ -29,6 +29,22 @@ public static class TimelineVisualProjector
         return blocks;
     }
 
+    public static IReadOnlyList<AllDayTimelineVisualTag> ProjectAllDayTags(CalendarSnapshot snapshot)
+    {
+        return snapshot.Appointments
+            .Where(appointment => appointment.IsAllDayEvent)
+            .OrderBy(appointment => appointment.Start)
+            .ThenBy(appointment => appointment.End)
+            .ThenBy(appointment => appointment.Id, StringComparer.Ordinal)
+            .Select(AppointmentSanitizer.Sanitize)
+            .Select(appointment => new AllDayTimelineVisualTag(
+                appointment,
+                appointment.Title,
+                appointment.CalendarColor,
+                appointment.Categories.Select(category => category.Color).ToArray()))
+            .ToArray();
+    }
+
     private static double CalculateRatio(DateTimeOffset windowStart, TimeSpan windowDuration, DateTimeOffset point)
     {
         if (windowDuration <= TimeSpan.Zero)
