@@ -368,7 +368,7 @@ public partial class MainWindow : Window
             0,
             0);
         var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);
-        CountdownTextBlock.Text = countdown ?? string.Empty;
+        CountdownTextBlock.Text = countdown?.Text ?? string.Empty;
         CountdownIndicator.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
