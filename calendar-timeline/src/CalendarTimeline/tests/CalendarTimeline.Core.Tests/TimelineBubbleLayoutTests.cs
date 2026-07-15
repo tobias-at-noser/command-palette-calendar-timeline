@@ -12,14 +12,14 @@ public sealed class TimelineBubbleLayoutTests
     }
 
     [Fact]
-    public void ShouldShowDuration_ShowsDurationAtTheVisibilityThreshold()
+    public void ShouldShowDuration_ShowsDurationWhenTheCompactMetadataFits()
     {
-        Assert.True(TimelineBubbleLayout.ShouldShowDuration(TimelineBubbleLayout.DurationVisibleMinimumWidth));
+        Assert.True(TimelineBubbleLayout.ShouldShowDuration(96));
     }
 
     [Fact]
-    public void ShouldShowDuration_HidesDurationImmediatelyBelowTheVisibilityThreshold()
+    public void ShouldShowDuration_HidesDurationImmediatelyBelowTheCompactMetadataWidth()
     {
-        Assert.False(TimelineBubbleLayout.ShouldShowDuration(TimelineBubbleLayout.DurationVisibleMinimumWidth - 1));
+        Assert.False(TimelineBubbleLayout.ShouldShowDuration(95));
     }
 }
