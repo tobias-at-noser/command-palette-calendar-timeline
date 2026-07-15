@@ -36,6 +36,6 @@ public static class TimelineCountdownLayout
             candidateLeft = blockingRight;
         }
 
-        return Math.Min(candidateLeft, targetLeft - indicatorWidth);
+        return Math.Max(baseLeft, Math.Min(candidateLeft, targetLeft - indicatorWidth));
     }
 }

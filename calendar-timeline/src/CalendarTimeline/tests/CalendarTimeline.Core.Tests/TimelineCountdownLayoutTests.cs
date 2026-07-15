@@ -24,6 +24,12 @@ public sealed class TimelineCountdownLayoutTests
     }
 
     [Fact]
+    public void GetLeft_DoesNotMoveLeftOfTheNowLineWhenTheTargetIsTooClose()
+    {
+        Assert.Equal(32, TimelineCountdownLayout.GetLeft(32, 20, 40, []));
+    }
+
+    [Fact]
     public void GetLeft_MovesPastAChainOfOverlappingRunningBlocks()
     {
         Assert.Equal(
