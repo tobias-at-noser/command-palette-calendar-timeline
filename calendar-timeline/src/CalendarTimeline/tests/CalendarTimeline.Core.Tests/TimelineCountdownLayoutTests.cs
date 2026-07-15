@@ -18,6 +18,24 @@ public sealed class TimelineCountdownLayoutTests
     }
 
     [Fact]
+    public void GetLeft_DoesNotMoveForARunningBlockBeyondTheIndicator()
+    {
+        Assert.Equal(32, TimelineCountdownLayout.GetLeft(32, 20, 160, [new TimelineHorizontalBounds(70, 20)]));
+    }
+
+    [Fact]
+    public void GetLeft_MovesPastAChainOfOverlappingRunningBlocks()
+    {
+        Assert.Equal(
+            74,
+            TimelineCountdownLayout.GetLeft(
+                32,
+                20,
+                160,
+                [new TimelineHorizontalBounds(20, 30), new TimelineHorizontalBounds(49, 25)]));
+    }
+
+    [Fact]
     public void GetLeft_StopsBeforeTheTarget()
     {
         Assert.Equal(140, TimelineCountdownLayout.GetLeft(32, 20, 160, [new TimelineHorizontalBounds(20, 150)]));

@@ -401,7 +401,8 @@ public partial class MainWindow : Window
                 CountdownIndicator.DesiredSize.Width,
                 targetBounds.Left - CountdownWobbleMaximumOffset,
                 runningBlockBounds);
-            AnimateCountdownBase(countdownLeft - countdownBaseLeft);
+            var currentCountdownLeft = CountdownIndicator.Margin.Left + CountdownBaseTranslation.X;
+            AnimateCountdownBase(countdownLeft - countdownBaseLeft, currentCountdownLeft, countdownLeft);
         }
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
@@ -462,9 +463,21 @@ public partial class MainWindow : Window
         }
     }
 
-    private void AnimateCountdownBase(double baseX)
+    private void AnimateCountdownBase(double baseX, double currentCountdownLeft, double countdownLeft)
     {
         var currentBaseX = CountdownBaseTranslation.X;
+        if (currentCountdownLeft > countdownLeft)
+        {
+            CountdownWobbleStoryboard.Storyboard.Stop(CountdownIndicator);
+            CountdownBaseTranslation.BeginAnimation(TranslateTransform.XProperty, null);
+            CountdownBaseTranslation.X = baseX;
+            CountdownIndicator.BeginStoryboard(
+                CountdownWobbleStoryboard.Storyboard,
+                HandoffBehavior.SnapshotAndReplace,
+                isControllable: true);
+            return;
+        }
+
         if (currentBaseX == baseX)
         {
             return;

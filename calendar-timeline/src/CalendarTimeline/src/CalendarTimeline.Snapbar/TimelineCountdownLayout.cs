@@ -13,11 +13,29 @@ public static class TimelineCountdownLayout
         double targetLeft,
         IEnumerable<TimelineHorizontalBounds> runningBlocks)
     {
-        var afterRunningBlocks = runningBlocks
-            .Where(block => block.Right > baseLeft)
-            .Select(block => block.Right)
-            .DefaultIfEmpty(baseLeft)
-            .Max();
-        return Math.Min(afterRunningBlocks, targetLeft - indicatorWidth);
+        var candidateLeft = baseLeft;
+        var blocks = runningBlocks.ToArray();
+
+        while (true)
+        {
+            var blockingRight = candidateLeft;
+            foreach (var block in blocks)
+            {
+                if (candidateLeft < block.Right
+                    && candidateLeft + indicatorWidth > block.Left)
+                {
+                    blockingRight = Math.Max(blockingRight, block.Right);
+                }
+            }
+
+            if (blockingRight <= candidateLeft)
+            {
+                break;
+            }
+
+            candidateLeft = blockingRight;
+        }
+
+        return Math.Min(candidateLeft, targetLeft - indicatorWidth);
     }
 }

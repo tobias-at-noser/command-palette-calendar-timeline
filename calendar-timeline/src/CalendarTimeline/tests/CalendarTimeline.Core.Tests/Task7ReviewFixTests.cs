@@ -321,6 +321,31 @@ public sealed class Task7ReviewFixTests
     }
 
     [Fact]
+    public void SnapbarSourceResetsAnUnsafeAbsoluteCountdownPositionBeforeAnimating()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var updateLayout = source[
+            source.IndexOf("private void UpdateLayoutMetrics", StringComparison.Ordinal)..
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)];
+        var animateCountdownBase = source[
+            source.IndexOf("private void AnimateCountdownBase", StringComparison.Ordinal)..
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)];
+
+        Assert.True(
+            IndexOf(updateLayout, "CountdownIndicator.Margin = new Thickness(")
+            < IndexOf(updateLayout, "var currentCountdownLeft = CountdownIndicator.Margin.Left + CountdownBaseTranslation.X;"));
+        Assert.Contains("AnimateCountdownBase(countdownLeft - countdownBaseLeft, currentCountdownLeft, countdownLeft);", updateLayout);
+        Assert.Contains("private void AnimateCountdownBase(double baseX, double currentCountdownLeft, double countdownLeft)", animateCountdownBase);
+        Assert.Contains("if (currentCountdownLeft > countdownLeft)", animateCountdownBase);
+        Assert.True(
+            IndexOf(animateCountdownBase, "CountdownBaseTranslation.BeginAnimation(TranslateTransform.XProperty, null);")
+            < IndexOf(animateCountdownBase, "CountdownBaseTranslation.X = baseX;"));
+        Assert.True(
+            IndexOf(animateCountdownBase, "CountdownBaseTranslation.X = baseX;")
+            < IndexOf(animateCountdownBase, "var animation = new DoubleAnimation"));
+    }
+
+    [Fact]
     public void SnapbarSourceUsesAClippedMaskedViewportForUnboundedBlocks()
     {
         var xaml = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml"));
