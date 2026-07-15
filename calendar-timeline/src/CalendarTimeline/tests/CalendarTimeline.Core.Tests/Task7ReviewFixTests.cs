@@ -283,9 +283,11 @@ public sealed class Task7ReviewFixTests
         var countdown = xaml[countdownStart..xaml.IndexOf("</Border>", countdownStart, StringComparison.Ordinal)];
 
         Assert.Contains("VerticalAlignment=\"Top\"", countdown);
-        Assert.Contains("x:Name=\"CountdownTranslation\"", countdown);
+        Assert.Contains("x:Name=\"CountdownBaseTranslation\"", countdown);
+        Assert.Contains("x:Name=\"CountdownWobbleTranslation\"", countdown);
         Assert.Contains("<EventTrigger RoutedEvent=\"FrameworkElement.Loaded\">", countdown);
-        Assert.Contains("Storyboard.TargetName=\"CountdownTranslation\"", countdown);
+        Assert.Contains("x:Name=\"CountdownWobbleStoryboard\"", countdown);
+        Assert.Contains("Storyboard.TargetName=\"CountdownWobbleTranslation\"", countdown);
         Assert.Contains("Storyboard.TargetProperty=\"X\"", countdown);
         Assert.Contains("To=\"3\"", countdown);
         Assert.Contains("Duration=\"0:0:1.2\"", countdown);
@@ -293,6 +295,54 @@ public sealed class Task7ReviewFixTests
         Assert.Contains("RepeatBehavior=\"Forever\"", countdown);
         Assert.Contains("timelineWidth * TimelineSnapbarLayout.NowRatio + 8", source);
         Assert.Contains("nowLineBounds.Top", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceMeasuresAndAnimatesCountdownAroundHighlightedBlocks()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+
+        Assert.Contains("TimelineTimeDisplay.IsHighlighted(now, block)", source);
+        Assert.Contains("CountdownIndicator.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity))", source);
+        Assert.Contains("const double CountdownWobbleMaximumOffset = 3;", source);
+        Assert.Contains("targetBounds.Left - CountdownWobbleMaximumOffset", source);
+        Assert.Contains("TimelineCountdownLayout.GetLeft", source);
+        Assert.Contains("new DoubleAnimation", source);
+        Assert.Contains("Duration = TimeSpan.FromMilliseconds(150)", source);
+        Assert.Contains("new QuadraticEase { EasingMode = EasingMode.EaseOut }", source);
+        Assert.Contains("CountdownWobbleStoryboard.Storyboard.Stop(CountdownIndicator)", source);
+        Assert.Contains("CountdownIndicator.BeginStoryboard(", source);
+        Assert.Contains("CountdownWobbleStoryboard.Storyboard", source);
+        Assert.Contains("CreateBlockButton(block, bounds.Width, isHighlighted)", source);
+        Assert.Contains("CreateBubbleContent(block, colors, width, isHighlighted)", source);
+        Assert.Contains("if (isHighlighted)", source);
+        Assert.Contains("CreateHighlightOverlay()", source);
+        Assert.Contains("RepeatBehavior.Forever", source);
+    }
+
+    [Fact]
+    public void SnapbarSourceResetsAnUnsafeAbsoluteCountdownPositionBeforeAnimating()
+    {
+        var source = File.ReadAllText(ResolveWpfSourcePath("MainWindow.xaml.cs"));
+        var updateLayout = source[
+            source.IndexOf("private void UpdateLayoutMetrics", StringComparison.Ordinal)..
+            source.IndexOf("private void UpdateWindowHeight", StringComparison.Ordinal)];
+        var animateCountdownBase = source[
+            source.IndexOf("private void AnimateCountdownBase", StringComparison.Ordinal)..
+            source.IndexOf("private void RestoreWindowSettings", StringComparison.Ordinal)];
+
+        Assert.True(
+            IndexOf(updateLayout, "CountdownIndicator.Margin = new Thickness(")
+            < IndexOf(updateLayout, "var currentCountdownLeft = CountdownIndicator.Margin.Left + CountdownBaseTranslation.X;"));
+        Assert.Contains("AnimateCountdownBase(countdownLeft - countdownBaseLeft, currentCountdownLeft, countdownLeft);", updateLayout);
+        Assert.Contains("private void AnimateCountdownBase(double baseX, double currentCountdownLeft, double countdownLeft)", animateCountdownBase);
+        Assert.Contains("if (currentCountdownLeft > countdownLeft)", animateCountdownBase);
+        Assert.True(
+            IndexOf(animateCountdownBase, "CountdownBaseTranslation.BeginAnimation(TranslateTransform.XProperty, null);")
+            < IndexOf(animateCountdownBase, "CountdownBaseTranslation.X = baseX;"));
+        Assert.True(
+            IndexOf(animateCountdownBase, "CountdownBaseTranslation.X = baseX;")
+            < IndexOf(animateCountdownBase, "var animation = new DoubleAnimation"));
     }
 
     [Fact]

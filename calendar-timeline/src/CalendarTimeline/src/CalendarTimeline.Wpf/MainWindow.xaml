@@ -115,13 +115,16 @@
                 CornerRadius="3"
                 Panel.ZIndex="4">
           <Border.RenderTransform>
-            <TranslateTransform x:Name="CountdownTranslation" />
+            <TransformGroup>
+              <TranslateTransform x:Name="CountdownBaseTranslation" />
+              <TranslateTransform x:Name="CountdownWobbleTranslation" />
+            </TransformGroup>
           </Border.RenderTransform>
           <Border.Triggers>
             <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-              <BeginStoryboard>
+              <BeginStoryboard x:Name="CountdownWobbleStoryboard">
                 <Storyboard>
-                  <DoubleAnimation Storyboard.TargetName="CountdownTranslation"
+                  <DoubleAnimation Storyboard.TargetName="CountdownWobbleTranslation"
                                    Storyboard.TargetProperty="X"
                                    From="0"
                                    To="3"

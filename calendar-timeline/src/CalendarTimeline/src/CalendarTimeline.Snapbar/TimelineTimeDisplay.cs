@@ -14,27 +14,25 @@ public static class TimelineTimeDisplay
         return now.ToString("dddd, dd.MM.yyyy", GermanCulture);
     }
 
-    public static string? GetCountdown(DateTimeOffset now, IEnumerable<TimelineBlockViewModel> blocks)
+    public static TimelineCountdown? GetCountdown(DateTimeOffset now, IEnumerable<TimelineBlockViewModel> blocks)
     {
-        var materializedBlocks = blocks.Where(block => block.End > block.Start).ToArray();
-        if (materializedBlocks.Any(block => block.Start <= now && now < block.End))
-        {
-            return null;
-        }
-
-        var nextBlock = materializedBlocks
-            .Where(block => block.Start > now)
+        var target = blocks
+            .Where(block => block.End > block.Start && block.Start > now)
             .OrderBy(block => block.Start)
             .FirstOrDefault();
-        if (nextBlock is null)
+        if (target is null || target.Start - now <= TimeSpan.FromMinutes(5))
         {
             return null;
         }
 
-        var roundedMinutes = (int)(Math.Round(
-            (nextBlock.Start - now).TotalMinutes / 5,
-            MidpointRounding.AwayFromZero) * 5);
-        var duration = TimeSpan.FromMinutes(roundedMinutes);
-        return $"{(int)duration.TotalHours:D2}:{duration.Minutes:D2}";
+        var minutes = (int)(Math.Round((target.Start - now).TotalMinutes / 5, MidpointRounding.AwayFromZero) * 5);
+        return new TimelineCountdown($"{minutes / 60:D2}:{minutes % 60:D2}", target);
+    }
+
+    public static bool IsHighlighted(DateTimeOffset now, TimelineBlockViewModel block)
+    {
+        return block.End > block.Start
+            && block.Start - TimeSpan.FromMinutes(5) <= now
+            && now < block.End;
     }
 }

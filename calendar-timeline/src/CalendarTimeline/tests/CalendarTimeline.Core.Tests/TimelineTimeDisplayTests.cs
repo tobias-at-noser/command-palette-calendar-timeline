@@ -14,17 +14,20 @@ public sealed class TimelineTimeDisplayTests
     }
 
     [Fact]
-    public void GetCountdown_RoundsTheNextAppointmentToFiveMinutes()
+    public void GetCountdown_SelectsTheNextFutureAppointmentWhileAnotherIsRunning()
     {
         var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+        var running = CreateBlock(now.AddMinutes(-20), now.AddMinutes(30));
+        var next = CreateBlock(now.AddMinutes(82), now.AddMinutes(112));
 
-        var result = TimelineTimeDisplay.GetCountdown(now, [CreateBlock(now.AddMinutes(82), now.AddMinutes(112))]);
+        var countdown = TimelineTimeDisplay.GetCountdown(now, [running, next]);
 
-        Assert.Equal("01:20", result);
+        Assert.Equal("01:20", countdown!.Text);
+        Assert.Same(next, countdown.Target);
     }
 
     [Fact]
-    public void GetCountdown_HidesTheCountdownWhileAnAppointmentIsRunning()
+    public void GetCountdown_HidesTheCountdownWithoutAFutureAppointment()
     {
         var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
 
@@ -34,11 +37,11 @@ public sealed class TimelineTimeDisplayTests
     }
 
     [Fact]
-    public void GetCountdown_HidesTheCountdownWithoutAFutureAppointment()
+    public void GetCountdown_HidesTheCountdownAtTheFiveMinuteBoundary()
     {
         var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
 
-        var result = TimelineTimeDisplay.GetCountdown(now, []);
+        var result = TimelineTimeDisplay.GetCountdown(now, [CreateBlock(now.AddMinutes(5), now.AddMinutes(35))]);
 
         Assert.Null(result);
     }
@@ -65,7 +68,42 @@ public sealed class TimelineTimeDisplayTests
                 CreateBlock(now.AddMinutes(82), now.AddMinutes(112)),
             ]);
 
-        Assert.Equal("01:20", result);
+        Assert.Equal("01:20", result!.Text);
+    }
+
+    [Fact]
+    public void GetCountdown_SelectsTheFutureAppointmentAfterAJustStartedAppointment()
+    {
+        var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+        var justStarted = CreateBlock(now, now.AddMinutes(30));
+        var next = CreateBlock(now.AddMinutes(25), now.AddMinutes(55));
+
+        var countdown = TimelineTimeDisplay.GetCountdown(now, [justStarted, next]);
+
+        Assert.Equal("00:25", countdown!.Text);
+        Assert.Same(next, countdown.Target);
+    }
+
+    [Fact]
+    public void IsHighlighted_CoversTheFiveMinuteLeadInUntilTheBlockEnds()
+    {
+        var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+        var block = CreateBlock(now.AddMinutes(5), now.AddMinutes(35));
+
+        Assert.True(TimelineTimeDisplay.IsHighlighted(now, block));
+        Assert.True(TimelineTimeDisplay.IsHighlighted(now.AddMinutes(5), block));
+        Assert.False(TimelineTimeDisplay.IsHighlighted(now.AddMinutes(35), block));
+        Assert.True(TimelineTimeDisplay.IsHighlighted(now, CreateBlock(now.AddMinutes(-2), now.AddMinutes(20))));
+    }
+
+    [Fact]
+    public void IsHighlighted_ReturnsFalseForAnInvalidBlock()
+    {
+        var now = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+
+        var result = TimelineTimeDisplay.IsHighlighted(now, CreateBlock(now.AddMinutes(5), now.AddMinutes(5)));
+
+        Assert.False(result);
     }
 
     [Fact]

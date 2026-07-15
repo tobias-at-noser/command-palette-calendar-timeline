@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using CalendarTimeline.Core;
@@ -17,6 +18,7 @@ public partial class MainWindow : Window
 {
     private const double GridVerticalMargin = 6;
     private const double StatusRowHeight = 16;
+    private const double CountdownWobbleMaximumOffset = 3;
     private const int WmNcHitTest = 0x0084;
     private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
@@ -362,14 +364,46 @@ public partial class MainWindow : Window
             0,
             timelineWidth - (timelineWidth * TimelineSnapbarLayout.NowRatio) + 4,
             timelineHeight - nowLineBounds.Bottom);
+        var countdownBaseLeft = timelineWidth * TimelineSnapbarLayout.NowRatio + 8;
         CountdownIndicator.Margin = new Thickness(
-            timelineWidth * TimelineSnapbarLayout.NowRatio + 8,
+            countdownBaseLeft,
             nowLineBounds.Top,
             0,
             0);
         var countdown = TimelineTimeDisplay.GetCountdown(now, viewModel.Blocks);
-        CountdownTextBlock.Text = countdown ?? string.Empty;
-        CountdownIndicator.Visibility = countdown is null ? Visibility.Collapsed : Visibility.Visible;
+        CountdownTextBlock.Text = countdown?.Text ?? string.Empty;
+        if (countdown is null)
+        {
+            CountdownIndicator.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            CountdownIndicator.Visibility = Visibility.Visible;
+            CountdownIndicator.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var runningBlockBounds = viewModel.Blocks
+                .Where(block => block.IsRunning)
+                .Select(block =>
+                {
+                    var bounds = TimelineSnapbarLayout.GetBlockBounds(
+                        timelineWidth,
+                        block.StartRatio,
+                        block.WidthRatio,
+                        TimelineSnapbarLayout.MinimumBlockWidth);
+                    return new TimelineHorizontalBounds(bounds.Left, bounds.Width);
+                });
+            var targetBounds = TimelineSnapbarLayout.GetBlockBounds(
+                timelineWidth,
+                countdown.Target.StartRatio,
+                countdown.Target.WidthRatio,
+                TimelineSnapbarLayout.MinimumBlockWidth);
+            var countdownLeft = TimelineCountdownLayout.GetLeft(
+                countdownBaseLeft,
+                CountdownIndicator.DesiredSize.Width,
+                targetBounds.Left - CountdownWobbleMaximumOffset,
+                runningBlockBounds);
+            var currentCountdownLeft = CountdownIndicator.Margin.Left + CountdownBaseTranslation.X;
+            AnimateCountdownBase(countdownLeft - countdownBaseLeft, currentCountdownLeft, countdownLeft);
+        }
         UpdateWindowHeight(timelineHeight);
         BlocksCanvas.Children.Clear();
 
@@ -380,7 +414,8 @@ public partial class MainWindow : Window
                 block.StartRatio,
                 block.WidthRatio,
                 TimelineSnapbarLayout.MinimumBlockWidth);
-            var button = CreateBlockButton(block, bounds.Width);
+            var isHighlighted = TimelineTimeDisplay.IsHighlighted(now, block);
+            var button = CreateBlockButton(block, bounds.Width, isHighlighted);
             Canvas.SetLeft(button, bounds.Left);
             Canvas.SetTop(button, TimelineSnapbarLayout.GetBlockTop(block.Lane, laneCount));
             BlocksCanvas.Children.Add(button);
@@ -426,6 +461,46 @@ public partial class MainWindow : Window
         {
             isUpdatingWindowHeight = false;
         }
+    }
+
+    private void AnimateCountdownBase(double baseX, double currentCountdownLeft, double countdownLeft)
+    {
+        var currentBaseX = CountdownBaseTranslation.X;
+        if (currentCountdownLeft > countdownLeft)
+        {
+            CountdownWobbleStoryboard.Storyboard.Stop(CountdownIndicator);
+            CountdownBaseTranslation.BeginAnimation(TranslateTransform.XProperty, null);
+            CountdownBaseTranslation.X = baseX;
+            CountdownIndicator.BeginStoryboard(
+                CountdownWobbleStoryboard.Storyboard,
+                HandoffBehavior.SnapshotAndReplace,
+                isControllable: true);
+            return;
+        }
+
+        if (currentBaseX == baseX)
+        {
+            return;
+        }
+
+        CountdownWobbleStoryboard.Storyboard.Stop(CountdownIndicator);
+        var animation = new DoubleAnimation
+        {
+            From = currentBaseX,
+            To = baseX,
+            Duration = TimeSpan.FromMilliseconds(150),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut },
+        };
+        animation.Completed += (_, _) =>
+        {
+            CountdownBaseTranslation.X = baseX;
+            CountdownBaseTranslation.BeginAnimation(TranslateTransform.XProperty, null);
+            CountdownIndicator.BeginStoryboard(
+                CountdownWobbleStoryboard.Storyboard,
+                HandoffBehavior.SnapshotAndReplace,
+                isControllable: true);
+        };
+        CountdownBaseTranslation.BeginAnimation(TranslateTransform.XProperty, animation);
     }
 
     private void RestoreWindowSettings()
@@ -620,7 +695,7 @@ public partial class MainWindow : Window
         return label;
     }
 
-    private Button CreateBlockButton(TimelineBlockViewModel block, double width)
+    private Button CreateBlockButton(TimelineBlockViewModel block, double width, bool isHighlighted)
     {
         var colors = TimelineBubbleColors.Resolve(
             block.CategoryColors,
@@ -638,25 +713,59 @@ public partial class MainWindow : Window
             Background = Brushes.Transparent,
             Style = (Style)FindResource("TimelineBlockButtonStyle"),
             ToolTip = CreateBubbleTooltip(block),
-            Content = CreateBubbleContent(block, colors, width),
+            Content = CreateBubbleContent(block, colors, width, isHighlighted),
         };
         button.Click += OnBlockClick;
         return button;
     }
 
-    private static Border CreateBubbleContent(TimelineBlockViewModel block, TimelineBubbleColorSet colors, double width)
+    private static Border CreateBubbleContent(
+        TimelineBlockViewModel block,
+        TimelineBubbleColorSet colors,
+        double width,
+        bool isHighlighted)
     {
         var foreground = CreateSolidBrush(colors.Foreground);
+        var content = new Grid();
+        content.Children.Add(CreateBubbleLabel(block, foreground, width));
+        if (isHighlighted)
+        {
+            content.Children.Add(CreateHighlightOverlay());
+        }
+
         return new Border
         {
             Background = CreateBubbleFill(colors.LightFill, colors.DarkFill),
             BorderBrush = CreateSolidBrush(colors.Border),
-            BorderThickness = new Thickness(1),
+            BorderThickness = isHighlighted ? new Thickness(2) : new Thickness(1),
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(8, 3, 8, 3),
             Effect = CreateBubbleShadow(block.IsRunning),
-            Child = CreateBubbleLabel(block, foreground, width),
+            Child = content,
         };
+    }
+
+    private static Border CreateHighlightOverlay()
+    {
+        var overlay = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(48, 255, 255, 255)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(112, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            IsHitTestVisible = false,
+        };
+        overlay.BeginAnimation(
+            OpacityProperty,
+            new DoubleAnimation
+            {
+                From = 0.45,
+                To = 0.9,
+                Duration = TimeSpan.FromSeconds(0.8),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+            });
+        return overlay;
     }
 
     private static ToolTip CreateBubbleTooltip(TimelineBlockViewModel block)
