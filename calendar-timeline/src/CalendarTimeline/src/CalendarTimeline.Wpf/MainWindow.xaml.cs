@@ -18,6 +18,7 @@ public partial class MainWindow : Window
 {
     private const double GridVerticalMargin = 6;
     private const double StatusRowHeight = 16;
+    private const double CountdownWobbleMaximumOffset = 3;
     private const int WmNcHitTest = 0x0084;
     private const int WmSysCommand = 0x0112;
     private const int WmNcMouseMove = 0x00A0;
@@ -398,7 +399,7 @@ public partial class MainWindow : Window
             var countdownLeft = TimelineCountdownLayout.GetLeft(
                 countdownBaseLeft,
                 CountdownIndicator.DesiredSize.Width,
-                targetBounds.Left,
+                targetBounds.Left - CountdownWobbleMaximumOffset,
                 runningBlockBounds);
             AnimateCountdownBase(countdownLeft - countdownBaseLeft);
         }

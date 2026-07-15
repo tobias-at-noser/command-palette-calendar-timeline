@@ -304,6 +304,8 @@ public sealed class Task7ReviewFixTests
 
         Assert.Contains("TimelineTimeDisplay.IsHighlighted(now, block)", source);
         Assert.Contains("CountdownIndicator.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity))", source);
+        Assert.Contains("const double CountdownWobbleMaximumOffset = 3;", source);
+        Assert.Contains("targetBounds.Left - CountdownWobbleMaximumOffset", source);
         Assert.Contains("TimelineCountdownLayout.GetLeft", source);
         Assert.Contains("new DoubleAnimation", source);
         Assert.Contains("Duration = TimeSpan.FromMilliseconds(150)", source);
