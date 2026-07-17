@@ -1,0 +1,71 @@
+services:
+  opencode:
+    build:
+      dockerfile: opencode.dockerfile
+      args:
+        OPENCODE_TAG: ${OPENCODE_TAG:-""}
+    ports:
+      - 4098
+    volumes:
+      # persistent opencode user settings
+      - opencode-home:/home/root/
+      # project specific opencode settings
+      - opencode-local:/home/root/.local
+      - opencode-agents:/home/root/.config/opencode/agents
+      # project specific UI settings
+      - openchamber-config:/home/root/.config/openchamber
+      # caches
+      - cache:/home/root/.cache
+      - cache-bun:/home/root/.bun
+      - cache-npm:/home/root/.npm
+      # persistent auth user settings
+      - ${HOME}/.local/share/opencode/account.json:/home/root/.local/share/opencode/account.json
+      - ${HOME}/.local/share/opencode/auth.json:/home/root/.local/share/opencode/auth.json
+    restart: unless-stopped
+
+  openchamber:
+    build:
+      dockerfile: openchamber.dockerfile
+      args:
+        OPENCHAMBER_TAG: ${OPENCHAMBER_TAG:-""}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      # persistent opencode user settings
+      - opencode-home:/home/root/
+      # project specific opencode settings
+      - opencode-local:/home/root/.local
+      - opencode-agents:/home/root/.config/opencode/agents
+      # project specific UI settings
+      - openchamber-config:/home/root/.config/openchamber
+      # caches
+      - cache:/home/root/.cache
+      - cache-bun:/home/root/.bun
+      - cache-npm:/home/root/.npm
+      # persistent auth user settings
+      - ${HOME}/.local/share/opencode/account.json:/home/root/.local/share/opencode/account.json
+      - ${HOME}/.local/share/opencode/auth.json:/home/root/.local/share/opencode/auth.json
+    environment:
+      # OPENCHAMBER_HOST: 0.0.0.0  # Bind address (default in Docker: 0.0.0.0)
+      OPENCHAMBER_UI_PASSWORD: ${OPENCHAMBER_UI_PASSWORD:?OPENCHAMBER_UI_PASSWORD must be set}
+      # OPENCHAMBER_TUNNEL_PROVIDER: cloudflare
+      # OPENCHAMBER_TUNNEL_MODE: quick  # quick | managed-remote | managed-local
+      # OPENCHAMBER_TUNNEL_HOSTNAME: app.example.com  # required for managed-remote
+      # OPENCHAMBER_TUNNEL_TOKEN: your_cloudflare_token  # required for managed-remote
+      # OPENCHAMBER_TUNNEL_CONFIG: /home/openchamber/.cloudflared/config.yml  # optional for managed-local
+      # OH_MY_OPENCODE: true # enable oh-my-opencode
+      OPENCODE_SKIP_START: true
+      # OPENCHAMBER_OPENCODE_HOSTNAME: 0.0.0.0 # Bind OpenCode to all interfaces
+    restart: unless-stopped
+    depends_on:
+      - opencode
+
+volumes:
+  cache:
+  cache-bun:
+  cache-npm:
+  openchamber-config:
+  opencode-agents:
+  opencode-local:
+  opencode-home:
+    external: true

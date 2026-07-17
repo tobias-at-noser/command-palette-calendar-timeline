@@ -1,0 +1,34 @@
+name: personal
+
+services:
+  opencode:
+    build:
+      tags:
+        - "personal/opencode:${OPENCODE_TAG}"
+        - "personal/opencode:latest"
+    hostname: personal.opencode
+    volumes:
+      - ..:/app:bind # main repo
+      - ${OPENCODE_WORKTREES_PATH:-../../personal.worktrees}:/home/root/.local/share/opencode/worktree:bind # worktrees
+    secrets:
+      - azure_devops_pat
+      - gitkraken_pat
+
+  openchamber:
+    build:
+      tags:
+        - "personal/openchamber:${OPENCHAMBER_TAG}"
+        - "personal/openchamber:latest"
+    ports:
+      - 3001:3003
+    volumes:
+      - ..:/app:bind # main repo
+      - ${OPENCODE_WORKTREES_PATH:-../../personal.worktrees}:/home/root/.local/share/opencode/worktree:bind # worktrees
+    environment:
+      OPENCODE_HOST: http://personal.opencode:4098 # Connect to external OpenCode server
+
+secrets:
+  azure_devops_pat:
+    environment: AZURE_DEVOPS_MCP_PAT_B64
+  gitkraken_pat:
+    environment: GITKRAKEN_PAT
