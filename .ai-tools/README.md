@@ -30,6 +30,14 @@ OPENCHAMBER_UI_PASSWORD
 └── <repo>.worktrees
 ```
 
+5. Optional: Lokale Website-Zugangsdaten aktivieren. Beide ignorierten Dateien erstellen und mit den jeweiligen Werten fuellen:
+
+```bash
+touch .ai-tools/user.txt .ai-tools/password.txt
+```
+
+   Die Zugangsdaten werden nur eingehaengt, wenn beide Dateien vorhanden sind.
+
 ## Use
 
 ### Run

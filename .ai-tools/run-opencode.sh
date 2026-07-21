@@ -4,6 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+COMPOSE_FILES=(-f compose-opencode.yml -f compose-opencode.override.yml)
+if [[ -f user.txt && -f password.txt ]]; then
+  COMPOSE_FILES+=(-f compose-opencode.credentials.override.yml)
+  echo "Local website credentials enabled."
+else
+  echo "Local website credentials disabled."
+fi
+
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCODE_WORKTREES_PATH="${REPO_DIR}.worktrees"
 export OPENCODE_WORKTREES_PATH
@@ -88,11 +96,13 @@ compose_image_base() {
   var_name="$2"
   marker="__tag_probe__"
 
-  env "$var_name=$marker" "${COMPOSE_CMD[@]}" -f compose-opencode.yml -f compose-opencode.override.yml config \
+  env "$var_name=$marker" "${COMPOSE_CMD[@]}" "${COMPOSE_FILES[@]}" config \
     | awk -v svc="$service" -v marker=":$marker" '
       $1 == svc ":" { in_service=1; next }
-      in_service && /^[[:space:]]{2}[A-Za-z0-9_-]+:/ { in_service=0 }
+      in_service && /^  [A-Za-z0-9_-]+:$/ { in_service=0 }
       in_service && $1 == "-" && index($2, marker) {
+        sub(/^"/, "", $2)
+        sub(/"$/, "", $2)
         sub(marker "$", "", $2)
         print $2
         exit
@@ -112,7 +122,7 @@ echo "OpenChamber $OPENCHAMBER_TAG"
 echo "OpenCode $OPENCODE_TAG"
 
 echo "building..."
-"${COMPOSE_CMD[@]}" -f compose-opencode.yml -f compose-opencode.override.yml build --pull
+"${COMPOSE_CMD[@]}" "${COMPOSE_FILES[@]}" build --pull
 echo "up..."
-"${COMPOSE_CMD[@]}" -f compose-opencode.yml -f compose-opencode.override.yml up -d --remove-orphans
+"${COMPOSE_CMD[@]}" "${COMPOSE_FILES[@]}" up -d --remove-orphans
 echo "done."
