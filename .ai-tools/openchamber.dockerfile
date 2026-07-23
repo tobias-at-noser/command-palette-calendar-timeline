@@ -8,17 +8,15 @@ USER root
 ENV HOME=/home/root
 WORKDIR ${HOME}
 
-ARG OPENCHAMBER_TAG
+ARG OPENCHAMBER_TAG=1.16.3
 RUN apk --no-cache add \
     bash \
     git \
     && apk --no-cache add --virtual .openchamber-build-deps \
         build-base \
-        curl \
         python3 \
-    # echo version to trigger cache invalidations on update
-    && echo "Installing ${OPENCHAMBER_TAG}..." \
-    && curl -fsSL https://raw.githubusercontent.com/btriapitsyn/openchamber/main/scripts/install.sh | sh \
+    && npm install -g "@openchamber/web@${OPENCHAMBER_TAG}" \
+    && openchamber --version \
     && apk del .openchamber-build-deps \
     && rm -rf /var/cache/apk/*
 
