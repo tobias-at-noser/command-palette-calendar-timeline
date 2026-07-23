@@ -3,9 +3,7 @@ services:
     build:
       dockerfile: opencode.dockerfile
       args:
-        OPENCODE_TAG: ${OPENCODE_TAG:-""}
-    ports:
-      - 4098
+        OPENCODE_TAG: ${OPENCODE_TAG:-1.18.4}
     volumes:
       # persistent opencode user settings
       - opencode-home:/home/root/
@@ -27,7 +25,7 @@ services:
     build:
       dockerfile: openchamber.dockerfile
       args:
-        OPENCHAMBER_TAG: ${OPENCHAMBER_TAG:-""}
+        OPENCHAMBER_TAG: ${OPENCHAMBER_TAG:-1.16.3}
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:

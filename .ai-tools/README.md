@@ -13,24 +13,32 @@ docker volume create opencode-home
 2. Erstelle zwei leere Files (oder kopiere aus bestehender OpenCode-Installation):
 
 ```bash
-${HOME}/.local/share/opencode/account.json
-${HOME}/.local/share/opencode/auth.json
+mkdir -p "${HOME}/.local/share/opencode"
+touch "${HOME}/.local/share/opencode/account.json" \
+      "${HOME}/.local/share/opencode/auth.json"
 ```
 
-3. Passwort als Umgebungsvariable setzen (beliebiger Wert):
+3. Ein zufälliges Passwort als Umgebungsvariable setzen:
 
 ```bash
-OPENCHAMBER_UI_PASSWORD
+export OPENCHAMBER_UI_PASSWORD="$(openssl rand -base64 32)"
 ```
 
-4. Leeren Worktree-Ordner erstellen:
+4. Azure-DevOps- und GitKraken-PATs als Umgebungsvariablen setzen. Beide Variablen sind für die Compose-Secrets erforderlich. `AZURE_DEVOPS_PAT` enthält den unveränderten rohen Azure-DevOps-PAT, den MCP und Git verwenden; er ersetzt den bisherigen Base64-kodierten Wert `username:PAT`:
+
+```bash
+export AZURE_DEVOPS_PAT='<Azure-DevOps-PAT>'
+export GITKRAKEN_PAT='<GitKraken-PAT>'
+```
+
+5. Leeren Worktree-Ordner erstellen:
 
 ```
 ├── <repo>
 └── <repo>.worktrees
 ```
 
-5. Optional: Lokale Website-Zugangsdaten aktivieren. Beide ignorierten Dateien erstellen und mit den jeweiligen Werten fuellen:
+6. Optional: Lokale Website-Zugangsdaten aktivieren. Beide ignorierten Dateien erstellen und mit den jeweiligen Werten fuellen:
 
 ```bash
 touch .ai-tools/user.txt .ai-tools/password.txt
@@ -49,7 +57,10 @@ cd .ai-tools
 
 ### OpenChamber UI öffnen
 
-[personal.localhost:3001](http://personal.localhost:3001)
+[personal.openchamber:3001](http://personal.openchamber:3001)
+
+Die UI ist nur über den lokalen Host erreichbar. Für externen Zugriff muss die
+Port-Bindung bewusst angepasst werden.
 
 ## Documentation
 
@@ -96,5 +107,12 @@ Files:
 
 ## Maintenance
 
-- Set tags in ``compose-opencode.yml`` to match updated opencode or openchamber versions (triggers image pull and rebuild)
-- ``./run-opencode.sh``
+``run-opencode.sh`` löst Runtime-Tags in dieser Reihenfolge auf: explizite Umgebungsvariablen, neuestes GitHub-Release und zuletzt den im lokalen Image verfügbaren Tag.
+
+Für einen reproduzierbaren Start Tags als Umgebungsvariablen übergeben:
+
+```bash
+OPENCODE_TAG=1.18.4 OPENCHAMBER_TAG=1.16.3 ./run-opencode.sh
+```
+
+Die Compose-Dateien müssen für Tag-Updates nicht bearbeitet werden.
