@@ -38,7 +38,7 @@ export GITKRAKEN_PAT='<GitKraken-PAT>'
 └── <repo>.worktrees
 ```
 
-5. Optional: Lokale Website-Zugangsdaten aktivieren. Beide ignorierten Dateien erstellen und mit den jeweiligen Werten fuellen:
+6. Optional: Lokale Website-Zugangsdaten aktivieren. Beide ignorierten Dateien erstellen und mit den jeweiligen Werten fuellen:
 
 ```bash
 touch .ai-tools/user.txt .ai-tools/password.txt
@@ -57,7 +57,7 @@ cd .ai-tools
 
 ### OpenChamber UI öffnen
 
-[personal.localhost:3001](http://personal.localhost:3001)
+[personal.openchamber:3001](http://personal.openchamber:3001)
 
 Die UI ist nur über den lokalen Host erreichbar. Für externen Zugriff muss die
 Port-Bindung bewusst angepasst werden.
